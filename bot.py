@@ -17,7 +17,8 @@ async def ping(ctx):
     await ctx.send('Pong! 🏓')
 
 # التوكن الخاص بك
-TOKEN = "MTU1ODIzMDQ0MzM2OTk2MzYwMA.GvHclO.xtvOWQlaV6Vu4SuqvLdWuOwMRPXUwELZv4zpfk"
+TOKEN = os.getenv("TOKEN")
+
 
 if __name__ == "__main__":
     bot.run(TOKEN)
