@@ -376,8 +376,36 @@ async def ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)
     await interaction.response.send_message(f"Pong! 🏓 سرعة الاستجابة: {latency}ms")
 
-# --- تشغيل البوت ---
 
+
+
+
+
+import os
+from threading import Thread
+from flask import Flask
+
+app = Flask('')
+
+
+@app.route('/')
+def home():
+  return "Bot is online!"
+
+
+def run():
+  app.run(host='0.0.0.0', port=10000)
+
+
+def keep_alive():
+  t = Thread(target=run)
+  t.start()
+
+
+# تشغيل سيرفر الويب أولاً عشان يرضى موقع Render وما يقفل السيرفر
+keep_alive()
+
+# تشغيل البوت
 token = os.getenv('TOKEN')
 bot.run(token)
 
