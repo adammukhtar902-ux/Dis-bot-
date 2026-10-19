@@ -24,7 +24,8 @@ threading.Thread(target=run_flask, daemon=True).start()
 # --- ⚙️ إعدادات الأيديات والروابط ---
 # ==========================================
 
-VOUCHES_CHANNEL_ID = 123456789012345678  # <--- غير هذا برقم آي دي روم VOUCHES عندك
+# ⚠️ ضع هنا آي دي (ID) روم التقييمات ليظهر باللون الأزرق المباشر:
+VOUCHES_CHANNEL_ID = 1555679947467784212  # <--- يمكنك تغييره بـ ID روم VOUCHES
 
 CONFIG = {
     "middleman": {
@@ -45,7 +46,9 @@ CONFIG = {
 }
 
 PURPLE_COLOR = discord.Color.from_rgb(138, 43, 226)
-BANNER_URL = "https://i.ibb.co/6P2T2gM/asc-banner.png" 
+
+# رابط صورة ASC المباشر المضمون
+BANNER_URL = "https://cdn.discordapp.com/attachments/1000000000000000000/1000000000000000000/asc_banner.png" 
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -57,7 +60,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f"✅ تم تسجيل الدخول بنجاح باسم: {bot.user}")
 
-# --- أمر خاص لمزامنة أوامر السلاش يدوياً (!sync) ---
+# --- أمر لمزامنة الأوامر يدوياً (!sync) ---
 @bot.command()
 async def sync(ctx):
     if ctx.author.guild_permissions.administrator:
@@ -158,7 +161,44 @@ class TicketControlView(discord.ui.View):
         )
         await interaction.response.send_message(embed=claim_embed)
 
-# --- المدخلات والنوافذ ---
+# --- دالة إنشاء التكت السريعة والسريعة للغاية ---
+async def create_ticket(interaction: discord.Interaction, ticket_type: str, answers: list, welcome_msg: str):
+    # التأكيد الفوري لمنع خطأ Something went wrong
+    await interaction.response.defer(ephemeral=True)
+    
+    guild = interaction.guild
+    cfg = CONFIG[ticket_type]
+
+    category = guild.get_channel(cfg["category_id"])
+    staff_role = guild.get_role(cfg["role_id"])
+
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(view_channel=False),
+        interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+        guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
+    }
+    if staff_role:
+        overwrites[staff_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
+
+    ticket_channel = await guild.create_text_channel(
+        name=f"{cfg['name']}-{interaction.user.name}",
+        category=category,
+        overwrites=overwrites
+    )
+
+    staff_mention = staff_role.mention if staff_role else "@الطاقم"
+    await ticket_channel.send(content=f"{staff_mention} {interaction.user.mention} **اهلا**\n\n{welcome_msg}")
+
+    embed = discord.Embed(color=PURPLE_COLOR)
+    for label, val in answers:
+        embed.add_field(name=label, value=f"```\n{val}\n```", inline=False)
+    embed.set_footer(text="Asc Support System")
+
+    view = TicketControlView(staff_role_id=cfg["role_id"])
+    await ticket_channel.send(embed=embed, view=view)
+    await interaction.followup.send(f"تم إنشاء تذكرتك بنجاح: {ticket_channel.mention}", ephemeral=True)
+
+# --- النوافذ والمدخلات لكل قسم ---
 class MiddlemanModal(discord.ui.Modal, title="أسئلة التذكرة - وسيط مضمون"):
     take = discord.ui.TextInput(label="وش بتاخذ؟", style=discord.TextStyle.paragraph, placeholder="اكتب وش بتاخذ بالتفصيل...", required=True)
     give = discord.ui.TextInput(label="وش بتعطي؟", style=discord.TextStyle.paragraph, placeholder="اكتب وش بتعطي...", required=True)
@@ -200,40 +240,6 @@ class SupportModal(discord.ui.Modal, title="أسئلة التذكرة - الدع
             welcome_msg="لقد تم إشعار فريق الدعم الفني الرجاء التحلي بالصبر ❤️"
         )
 
-async def create_ticket(interaction: discord.Interaction, ticket_type: str, answers: list, welcome_msg: str):
-    await interaction.response.defer(ephemeral=True)
-    guild = interaction.guild
-    cfg = CONFIG[ticket_type]
-
-    category = guild.get_channel(cfg["category_id"])
-    staff_role = guild.get_role(cfg["role_id"])
-
-    overwrites = {
-        guild.default_role: discord.PermissionOverwrite(view_channel=False),
-        interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
-        guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
-    }
-    if staff_role:
-        overwrites[staff_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
-
-    ticket_channel = await guild.create_text_channel(
-        name=f"{cfg['name']}-{interaction.user.name}",
-        category=category,
-        overwrites=overwrites
-    )
-
-    staff_mention = staff_role.mention if staff_role else "@الطاقم"
-    await ticket_channel.send(content=f"{staff_mention} {interaction.user.mention} **اهلا**\n\n{welcome_msg}")
-
-    embed = discord.Embed(color=PURPLE_COLOR)
-    for label, val in answers:
-        embed.add_field(name=label, value=f"```\n{val}\n```", inline=False)
-    embed.set_footer(text="Asc Support System")
-
-    view = TicketControlView(staff_role_id=cfg["role_id"])
-    await ticket_channel.send(embed=embed, view=view)
-    await interaction.followup.send(f"تم إنشاء تذكرتك بنجاح: {ticket_channel.mention}", ephemeral=True)
-
 class TicketSelect(discord.ui.Select):
     def __init__(self):
         options = [
@@ -273,7 +279,6 @@ async def ticket_panel(interaction: discord.Interaction):
         description=desc_text,
         color=PURPLE_COLOR
     )
-    embed.set_image(url=BANNER_URL)
 
     view = TicketSelectView()
     await interaction.channel.send(embed=embed, view=view)
@@ -365,7 +370,7 @@ async def ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)
     await interaction.response.send_message(f"Pong! 🏓 سرعة الاستجابة: {latency}ms")
 
-# --- تشغيل البوت مع آلية الانتظار التلقائي في حال حظر الـ IP ---
+# --- تشغيل البوت ---
 token = os.getenv("TOKEN")
 
 def start_bot():
@@ -375,9 +380,8 @@ def start_bot():
             break
         except discord.errors.HTTPException as e:
             if e.status == 429:
-                print("⚠️ تم اكتشاف حظر Rate Limit مؤقت من ديسكورد، جاري الانتظار 60 ثانية للعادة...")
                 import time
-                time.sleep(60)
+                time.sleep(10)
             else:
                 raise e
 
