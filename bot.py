@@ -394,19 +394,21 @@ def home():
 
 
 def run():
-  app.run(host='0.0.0.0', port=10000)
+  app.run(host='0.0.0.0', port=10000, use_reloader=False)
 
 
 def keep_alive():
   t = Thread(target=run)
+  t.daemon = True
   t.start()
 
 
-# تشغيل سيرفر الويب أولاً عشان يرضى موقع Render وما يقفل السيرفر
+# تشغيل سيرفر الويب في الخلفية
 keep_alive()
 
 # تشغيل البوت
 token = os.getenv('TOKEN')
 bot.run(token)
+
 
 
