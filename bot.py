@@ -4,6 +4,7 @@ import random
 import threading
 from flask import Flask
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 # --- خادم الويب لإبقاء البوت شغال 24/7 على Render ---
@@ -23,26 +24,23 @@ threading.Thread(target=run_flask, daemon=True).start()
 # --- ⚙️ إعدادات الأيديات والروابط ---
 # ==========================================
 
-VOUCHES_CHANNEL_ID = 123456789012345678  # <--- ضع آي دي روم التقييمات هنا
+VOUCHES_CHANNEL_ID = 123456789012345678  # <--- غير هذا برقم آي دي روم VOUCHES عندك
 
 CONFIG = {
     "middleman": {
         "category_id": 1555679947467784212,
         "role_id": 1555673464470376479,
-        "name": "وسيط-مضمون",
-        "emoji": "⚖️"
+        "name": "وسيط-مضمون"
     },
     "support": {
         "category_id": 1556375191980998698,
         "role_id": 1555335120582344784,
-        "name": "دعم-فني",
-        "emoji": "🎧"
+        "name": "دعم-فني"
     },
     "dev": {
         "category_id": 1556375365314945024,
         "role_id": 1561565278045736970,
-        "name": "تطوير-مابات",
-        "emoji": "📊"
+        "name": "تطوير-مابات"
     }
 }
 
@@ -53,14 +51,20 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-# تعيين البوت بدون مزامنة تلقائية تسبب الحظر
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f"تم تسجيل الدخول بنجاح باسم: {bot.user}")
+    print(f"✅ تم تسجيل الدخول بنجاح باسم: {bot.user}")
 
-# --- نظام ردود الأرقام (1, 2, 3) مع المنشن الأزرق للروم ---
+# --- أمر خاص لمزامنة أوامر السلاش يدوياً بالشرطة النقطية (!sync) ---
+@bot.command()
+async def sync(ctx):
+    if ctx.author.guild_permissions.administrator:
+        synced = await bot.tree.sync()
+        await ctx.send(f"تمت مزامنة {len(synced)} أمر بنجاح! ✅")
+
+# --- نظام ردود الأرقام (1, 2, 3) ---
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -122,7 +126,7 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# --- أزرار التحكم داخل التكت (قفل + استلام) ---
+# --- أزرار التحكم داخل التكت ---
 class TicketControlView(discord.ui.View):
     def __init__(self, staff_role_id: int):
         super().__init__(timeout=None)
@@ -157,7 +161,7 @@ class TicketControlView(discord.ui.View):
         )
         await interaction.response.send_message(embed=claim_embed)
 
-# --- النوافذ والمدخلات لكل قسم ---
+# --- المدخلات والنوافذ ---
 class MiddlemanModal(discord.ui.Modal, title="أسئلة التذكرة - وسيط مضمون"):
     take = discord.ui.TextInput(label="وش بتاخذ؟", style=discord.TextStyle.paragraph, placeholder="اكتب وش بتاخذ بالتفصيل...", required=True)
     give = discord.ui.TextInput(label="وش بتعطي؟", style=discord.TextStyle.paragraph, placeholder="اكتب وش بتعطي...", required=True)
@@ -257,7 +261,7 @@ class TicketSelectView(discord.ui.View):
         self.add_item(TicketSelect())
 
 @bot.tree.command(name="ticket", description="إرسال لوحة التكتات المتقدمة للسيرفر")
-@discord.app_commands.checks.has_permissions(administrator=True)
+@app_commands.checks.has_permissions(administrator=True)
 async def ticket_panel(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
 
@@ -278,7 +282,7 @@ async def ticket_panel(interaction: discord.Interaction):
     await interaction.channel.send(embed=embed, view=view)
     await interaction.followup.send("تم إرسال لوحة التكتات بنجاح! ✅", ephemeral=True)
 
-# نظام المسابقات والألعاب
+# المسابقات والألعاب
 class GiveawayView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -294,8 +298,8 @@ class GiveawayView(discord.ui.View):
             await interaction.response.send_message("✅ تم تسجيل دخولك بنجاح في المسابقة!", ephemeral=True)
 
 @bot.tree.command(name="gstart", description="بدء مسابقة جديدة بالسيرفر")
-@discord.app_commands.describe(prize="الجائزة", duration_seconds="المدة بالثواني", winners="عدد الفائزين")
-@discord.app_commands.checks.has_permissions(administrator=True)
+@app_commands.describe(prize="الجائزة", duration_seconds="المدة بالثواني", winners="عدد الفائزين")
+@app_commands.checks.has_permissions(administrator=True)
 async def gstart(interaction: discord.Interaction, prize: str, duration_seconds: int, winners: int = 1):
     await interaction.response.defer()
 
