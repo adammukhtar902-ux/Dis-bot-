@@ -377,18 +377,8 @@ async def ping(interaction: discord.Interaction):
     await interaction.response.send_message(f"Pong! 🏓 سرعة الاستجابة: {latency}ms")
 
 # --- تشغيل البوت ---
-token = os.getenv("TOKEN")
 
-def start_bot():
-    while True:
-        try:
-            bot.run(token)
-            break
-        except discord.errors.HTTPException as e:
-            if e.status == 429:
-                import time
-                time.sleep(10)
-            else:
-                raise e
+token = os.getenv('TOKEN')
+bot.run(token)
 
-start_bot()
+
