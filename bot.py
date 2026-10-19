@@ -2,7 +2,6 @@ import os
 import asyncio
 import random
 import threading
-from datetime import datetime, timedelta
 from flask import Flask
 import discord
 from discord import app_commands
@@ -21,7 +20,13 @@ def run_flask():
 
 threading.Thread(target=run_flask, daemon=True).start()
 
-# --- إعدادات الأيديات والتصنيفات ---
+# ==========================================
+# --- ⚙️ إعدادات الأيديات والروابط ---
+# ==========================================
+
+# ⚠️ ضع هنا آي دي (ID) روم التقييمات حتى يظهر الروم باللون الأزرق المباشر:
+VOUCHES_CHANNEL_ID = 123456789012345678  # <--- غير هذا الرقم بـ ID روم VOUCHES عندك
+
 CONFIG = {
     "middleman": {
         "category_id": 1555679947467784212,
@@ -45,6 +50,9 @@ CONFIG = {
 
 PURPLE_COLOR = discord.Color.from_rgb(138, 43, 226)
 
+# رابط صورة ASC الملكية الفخمة المرفقة
+BANNER_URL = "https://i.ibb.co/6P2T2gM/asc-banner.png" 
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
@@ -60,7 +68,7 @@ async def on_ready():
     except Exception as e:
         print(f"خطأ أثناء المزامنة: {e}")
 
-# --- نظام ردود الأرقام (1, 2, 3) داخل إمبد وحذف رسالة الرقم ---
+# --- نظام ردود الأرقام (1, 2, 3) مع المنشن الأزرق للروم ---
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -68,6 +76,7 @@ async def on_message(message):
 
     content = message.content.strip()
     channel_name = message.channel.name
+    vouche_tag = f"<#{VOUCHES_CHANNEL_ID}>" if VOUCHES_CHANNEL_ID else "#VOUCHES⭐"
 
     # 1. اختصار الوسيط
     if content == "1" and "وسيط-مضمون" in channel_name:
@@ -81,8 +90,8 @@ async def on_message(message):
             embed = discord.Embed(
                 description=(
                     f"كان معكم الوسيط: {message.author.mention} 🤝\n\n"
-                    "شكراً لتعاملكم معنا! نرجو منكم كتابة تقييمكم للخدمة في روم التقييمات:\n"
-                    "#VOUCHES⭐\n\n"
+                    f"شكراً لتعاملكم معنا! نرجو منكم كتابة تقييمكم للخدمة في روم التقييمات:\n"
+                    f"{vouche_tag}\n\n"
                     "نتمنى لكم يوماً سعيداً! ❤️"
                 ),
                 color=PURPLE_COLOR
@@ -99,7 +108,7 @@ async def on_message(message):
                 pass
 
             embed = discord.Embed(
-                description=f"كان معك {message.author.mention} من فريق الدعم الفني، لا تنسى التقيييم في روم #VOUCHES⭐\n❤️",
+                description=f"كان معك {message.author.mention} من فريق الدعم الفني، لا تنسى التقيييم في روم {vouche_tag}\n❤️",
                 color=PURPLE_COLOR
             )
             await message.channel.send(embed=embed)
@@ -114,7 +123,7 @@ async def on_message(message):
                 pass
 
             embed = discord.Embed(
-                description=f"كان معك {message.author.mention}\nمن فريق التطوير\nلاتنسى التقييم في روم\n#VOUCHES⭐",
+                description=f"كان معك {message.author.mention}\nمن فريق التطوير\nلاتنسى التقييم في روم\n{vouche_tag}",
                 color=PURPLE_COLOR
             )
             await message.channel.send(embed=embed)
@@ -161,7 +170,7 @@ class MiddlemanModal(discord.ui.Modal, title="أسئلة التذكرة - وسي
     take = discord.ui.TextInput(label="وش بتاخذ؟", style=discord.TextStyle.paragraph, placeholder="اكتب وش بتاخذ بالتفصيل...", required=True)
     give = discord.ui.TextInput(label="وش بتعطي؟", style=discord.TextStyle.paragraph, placeholder="اكتب وش بتعطي...", required=True)
     other_user = discord.ui.TextInput(label="يوزر الطرف الثاني بالديسكورد", style=discord.TextStyle.short, placeholder="اكتب يوزر الطرف الثاني...", required=True)
-    gift = discord.ui.TextInput(label="الطيب او الهديه/غير إلزامي", style=discord.TextStyle.short, placeholder="اختياري...", required=False)
+    gift = discord.ui.TextInput(label="التيب او الهديه/غير إلزامي", style=discord.TextStyle.short, placeholder="اختياري...", required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
         await create_ticket(
@@ -171,7 +180,7 @@ class MiddlemanModal(discord.ui.Modal, title="أسئلة التذكرة - وسي
                 ("وش بتاخذ؟", self.take.value),
                 ("وش بتعطي؟", self.give.value),
                 ("يوزر الطرف الثاني بالديسكورد", self.other_user.value),
-                ("الطيب او الهديه/غير إلزامي", self.gift.value or "لا يوجد")
+                ("التيب او الهديه/غير إلزامي", self.gift.value or "لا يوجد")
             ],
             welcome_msg="اهلاً بك في تكت طلب وسيط في سيرفر Asc\nلقد تم إشعار الوسطاء الرجاء انتظار الوسيط حتى ياتي ❤️"
         )
@@ -256,7 +265,7 @@ class TicketSelectView(discord.ui.View):
         super().__init__(timeout=None)
         self.add_item(TicketSelect())
 
-# --- لوحة التكتات الرئيسية (/ticket) ---
+# --- لوحة التكتات الرئيسية (/ticket) مع الصورة الفخمة ---
 @bot.tree.command(name="ticket", description="إرسال لوحة التكتات المتقدمة للسيرفر")
 @app_commands.checks.has_permissions(administrator=True)
 async def ticket_panel(interaction: discord.Interaction):
@@ -267,7 +276,8 @@ async def ticket_panel(interaction: discord.Interaction):
         description="إذا كان لديك أي سؤال أو استفسار، كل ما عليك هو فتح تذكرة،\nوسيتواصل معك فريق الدعم مباشرة بكل اهتمام وسرعة.\nنضمن لك تجربة دعم سهلة، واضحة، وسريعة.",
         color=PURPLE_COLOR
     )
-    embed.set_image(url="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop")
+    # رفع واستخدام الصورة الملكية الخاصة بـ ASC
+    embed.set_image(url=BANNER_URL)
 
     view = TicketSelectView()
     await interaction.channel.send(embed=embed, view=view)
@@ -324,8 +334,6 @@ async def gstart(interaction: discord.Interaction, prize: str, duration_seconds:
 # ==========================================
 # --- 🎲 نظام ألعاب السيرفر (Games) ---
 # ==========================================
-
-# 1. لعبة الروليت (Roulette)
 class RouletteView(discord.ui.View):
     def __init__(self, user: discord.User):
         super().__init__(timeout=30)
@@ -352,7 +360,6 @@ async def roulette(interaction: discord.Interaction):
     )
     await interaction.response.send_message(embed=embed, view=view)
 
-# 2. لعبة المافيا (Mafia)
 @bot.tree.command(name="mafia", description="بدء غرفة لعبة المافيا")
 async def mafia(interaction: discord.Interaction):
     embed = discord.Embed(
