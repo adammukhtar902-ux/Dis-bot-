@@ -50,7 +50,7 @@ CONFIG = {
 
 PURPLE_COLOR = discord.Color.from_rgb(138, 43, 226)
 
-# رابط صورة ASC الملكية الفخمة المرفقة
+# رابط صورة ASC الملكية الفخمة
 BANNER_URL = "https://i.ibb.co/6P2T2gM/asc-banner.png" 
 
 intents = discord.Intents.default()
@@ -267,15 +267,21 @@ class TicketSelectView(discord.ui.View):
         super().__init__(timeout=None)
         self.add_item(TicketSelect())
 
-# --- لوحة التكتات الرئيسية (/ticket) مع الصورة الفخمة ---
+# --- لوحة التكتات الرئيسية (/ticket) ---
 @bot.tree.command(name="ticket", description="إرسال لوحة التكتات المتقدمة للسيرفر")
 @app_commands.checks.has_permissions(administrator=True)
 async def ticket_panel(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
 
+    desc_text = (
+        "إذا كان لديك أي سؤال أو استفسار، كل ما عليك هو فتح تذكرة،\n"
+        "وسيتواصل معك فريق الدعم مباشرة بكل اهتمام وسرعة.\n"
+        "نضمن لك تجربة دعم سهلة، واضحة، وسريعة."
+    )
+
     embed = discord.Embed(
         title="نحن هنا لخدمتك",
-        description="إذا كان لديك أي سؤال أو استفسار، كل ما عليك هو فتح تذكرة،\nوسيتواصل معك فريق الدعم مباشرة بكل اهتمام وسرعة.\nنضمن لك تجربة دعم سهلة، واضحة، وسريعة.",
+        description=desc_text,
         color=PURPLE_COLOR
     )
     embed.set_image(url=BANNER_URL)
