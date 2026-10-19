@@ -41,16 +41,16 @@ async def on_ready():
 
 # --- 1. نافذة أسئلة وسيط مضمون (Modal) ---
 class MiddlemanModal(discord.ui.Modal, title="أسئلة التذكرة - وسيط مضمون"):
-  guarantee = discord.ui.TextInput(
-      label="وش ضمانك؟",
-      style=discord.TextStyle.short,
-      placeholder="اكتب ضمانك هنا...",
+  take = discord.ui.TextInput(
+      label="وش بتاخذ؟ (بالتفصيل)",
+      style=discord.TextStyle.paragraph,
+      placeholder="اكتب وش بتاخذ بالتفصيل...",
       required=True,
   )
-  price = discord.ui.TextInput(
-      label="وش مقابلك؟",
-      style=discord.TextStyle.short,
-      placeholder="اكتب المقابل هنا...",
+  give = discord.ui.TextInput(
+      label="وش بتعطي؟",
+      style=discord.TextStyle.paragraph,
+      placeholder="اكتب وش بتعطي...",
       required=True,
   )
   other_user = discord.ui.TextInput(
@@ -72,8 +72,8 @@ class MiddlemanModal(discord.ui.Modal, title="أسئلة التذكرة - وسي
         "وسيط-مضمون",
         "⚖️",
         [
-            ("وش ضمانك", self.guarantee.value),
-            ("وش مقابلك", self.price.value),
+            ("وش بتاخذ (بالتفصيل)", self.take.value),
+            ("وش بتعطي", self.give.value),
             ("الطرف الثاني", self.other_user.value),
             ("هدية الوسيط", self.gift.value or "لا يوجد"),
         ],
@@ -117,6 +117,7 @@ class SupportModal(discord.ui.Modal, title="أسئلة التذكرة - التو
 async def create_ticket_channel(
     interaction: discord.Interaction, ticket_name: str, emoji: str, answers: list
 ):
+  await interaction.response.defer(ephemeral=True)
   guild = interaction.guild
   overwrites = {
       guild.default_role: discord.PermissionOverwrite(view_channel=False),
@@ -135,7 +136,6 @@ async def create_ticket_channel(
       overwrites=overwrites,
   )
 
-  # ترتيب إجابات العضو داخل التكت
   fields_text = ""
   for label, val in answers:
     fields_text += f"**{label}:** {val}\n"
@@ -151,7 +151,7 @@ async def create_ticket_channel(
   )
 
   await ticket_channel.send(embed=embed, view=close_view)
-  await interaction.response.send_message(
+  await interaction.followup.send(
       f"تم إنشاء تذكرتك بنجاح: {ticket_channel.mention}", ephemeral=True
   )
 
@@ -222,12 +222,14 @@ class TicketSelectView(discord.ui.View):
     self.add_item(TicketSelect())
 
 
-# --- أمر إرسال اللوحة الرئيسية (/ticket) ---
+# --- أمر إرسال اللوحة الرئيسية (/ticket) مع الصورة الفخمة ---
 @bot.tree.command(
     name="ticket", description="إرسال لوحة التكتات المتقدمة للسيرفر"
 )
 @app_commands.checks.has_permissions(administrator=True)
 async def ticket_panel(interaction: discord.Interaction):
+  await interaction.response.defer(ephemeral=True)
+
   embed = discord.Embed(
       title="نحن هنا لخدمتك",
       description=(
@@ -237,11 +239,14 @@ async def ticket_panel(interaction: discord.Interaction):
       ),
       color=discord.Color.from_rgb(138, 43, 226),
   )
+  # وضعنا رابط الصورة الفخمة اللي صممناها قبل شوي
+  embed.set_image(
+      url="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop"
+  )
+
   view = TicketSelectView()
   await interaction.channel.send(embed=embed, view=view)
-  await interaction.response.send_message(
-      "تم إرسال لوحة التكتات بنجاح! ✅", ephemeral=True
-  )
+  await interaction.followup.send("تم إرسال لوحة التكتات بنجاح! ✅", ephemeral=True)
 
 
 # --- أمر Ping السريع للتأكد ---
