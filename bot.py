@@ -61,12 +61,14 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    try:
-        synced = await bot.tree.sync()
-        print(f"تم تسجيل الدخول باسم: {bot.user}")
-        print(f"تمت مزامنة {len(synced)} أمر بنجاح!")
-    except Exception as e:
-        print(f"خطأ أثناء المزامنة: {e}")
+    print(f"تم تسجيل الدخول بنجاح باسم: {bot.user}")
+
+# --- أمر لمزامنة الأوامر يدوياً فقط عند الحاجة لتجنب الحظر ---
+@bot.command()
+@commands.is_owner()
+async def sync(ctx):
+    synced = await bot.tree.sync()
+    await ctx.send(f"تمت مزامنة {len(synced)} أمر بنجاح! ✅")
 
 # --- نظام ردود الأرقام (1, 2, 3) مع المنشن الأزرق للروم ---
 @bot.event
@@ -276,7 +278,6 @@ async def ticket_panel(interaction: discord.Interaction):
         description="إذا كان لديك أي سؤال أو استفسار، كل ما عليك هو فتح تذكرة،\nوسيتواصل معك فريق الدعم مباشرة بكل اهتمام وسرعة.\nنضمن لك تجربة دعم سهلة، واضحة، وسريعة.",
         color=PURPLE_COLOR
     )
-    # رفع واستخدام الصورة الملكية الخاصة بـ ASC
     embed.set_image(url=BANNER_URL)
 
     view = TicketSelectView()
