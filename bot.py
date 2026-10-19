@@ -4,7 +4,6 @@ import random
 import threading
 from flask import Flask
 import discord
-from discord import app_commands
 from discord.ext import commands
 
 # --- خادم الويب لإبقاء البوت شغال 24/7 على Render ---
@@ -24,8 +23,7 @@ threading.Thread(target=run_flask, daemon=True).start()
 # --- ⚙️ إعدادات الأيديات والروابط ---
 # ==========================================
 
-# ⚠️ ضع هنا آي دي (ID) روم التقييمات حتى يظهر الروم باللون الأزرق المباشر:
-VOUCHES_CHANNEL_ID = 123456789012345678  # <--- غير هذا الرقم بـ ID روم VOUCHES عندك
+VOUCHES_CHANNEL_ID = 123456789012345678  # <--- ضع آي دي روم التقييمات هنا
 
 CONFIG = {
     "middleman": {
@@ -49,26 +47,18 @@ CONFIG = {
 }
 
 PURPLE_COLOR = discord.Color.from_rgb(138, 43, 226)
-
-# رابط صورة ASC الملكية الفخمة
 BANNER_URL = "https://i.ibb.co/6P2T2gM/asc-banner.png" 
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
+# تعيين البوت بدون مزامنة تلقائية تسبب الحظر
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
     print(f"تم تسجيل الدخول بنجاح باسم: {bot.user}")
-
-# --- أمر لمزامنة الأوامر يدوياً فقط عند الحاجة لتجنب الحظر ---
-@bot.command()
-@commands.is_owner()
-async def sync(ctx):
-    synced = await bot.tree.sync()
-    await ctx.send(f"تمت مزامنة {len(synced)} أمر بنجاح! ✅")
 
 # --- نظام ردود الأرقام (1, 2, 3) مع المنشن الأزرق للروم ---
 @bot.event
@@ -243,7 +233,6 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str, answ
     await ticket_channel.send(embed=embed, view=view)
     await interaction.followup.send(f"تم إنشاء تذكرتك بنجاح: {ticket_channel.mention}", ephemeral=True)
 
-# --- القائمة المنسدلة ---
 class TicketSelect(discord.ui.Select):
     def __init__(self):
         options = [
@@ -267,9 +256,8 @@ class TicketSelectView(discord.ui.View):
         super().__init__(timeout=None)
         self.add_item(TicketSelect())
 
-# --- لوحة التكتات الرئيسية (/ticket) ---
 @bot.tree.command(name="ticket", description="إرسال لوحة التكتات المتقدمة للسيرفر")
-@app_commands.checks.has_permissions(administrator=True)
+@discord.app_commands.checks.has_permissions(administrator=True)
 async def ticket_panel(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
 
@@ -290,9 +278,7 @@ async def ticket_panel(interaction: discord.Interaction):
     await interaction.channel.send(embed=embed, view=view)
     await interaction.followup.send("تم إرسال لوحة التكتات بنجاح! ✅", ephemeral=True)
 
-# ==========================================
-# --- 🎁 نظام القيف أواي (GIVEAWAYS) ---
-# ==========================================
+# نظام المسابقات والألعاب
 class GiveawayView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -308,8 +294,8 @@ class GiveawayView(discord.ui.View):
             await interaction.response.send_message("✅ تم تسجيل دخولك بنجاح في المسابقة!", ephemeral=True)
 
 @bot.tree.command(name="gstart", description="بدء مسابقة جديدة بالسيرفر")
-@app_commands.describe(prize="الجائزة", duration_seconds="المدة بالثواني", winners="عدد الفائزين")
-@app_commands.checks.has_permissions(administrator=True)
+@discord.app_commands.describe(prize="الجائزة", duration_seconds="المدة بالثواني", winners="عدد الفائزين")
+@discord.app_commands.checks.has_permissions(administrator=True)
 async def gstart(interaction: discord.Interaction, prize: str, duration_seconds: int, winners: int = 1):
     await interaction.response.defer()
 
@@ -321,7 +307,7 @@ async def gstart(interaction: discord.Interaction, prize: str, duration_seconds:
     )
     embed.set_footer(text="Asc Giveaways")
 
-    msg = await interaction.followup.send(embed=embed, view=view)
+    await interaction.followup.send(embed=embed, view=view)
     await asyncio.sleep(duration_seconds)
 
     if not view.entries:
@@ -338,9 +324,6 @@ async def gstart(interaction: discord.Interaction, prize: str, duration_seconds:
     )
     await interaction.channel.send(content=winner_mentions, embed=win_embed)
 
-# ==========================================
-# --- 🎲 نظام ألعاب السيرفر (Games) ---
-# ==========================================
 class RouletteView(discord.ui.View):
     def __init__(self, user: discord.User):
         super().__init__(timeout=30)
@@ -352,7 +335,7 @@ class RouletteView(discord.ui.View):
             await interaction.response.send_message("هذه اللعبة ليست لك!", ephemeral=True)
             return
 
-        outcomes = ["💥 *آوت! طلقة في الراس، خسرت اللعبة!*", "️ *كلاك! نجاة، العجلة فارغة!* 🍀"]
+        outcomes = ["💥 *آوت! طلقة في الراس، خسرت اللعبة!*", "🍀 *كلاك! نجاة، العجلة فارغة!*"]
         result = random.choice(outcomes)
         button.disabled = True
         await interaction.response.edit_message(content=f"{interaction.user.mention} {result}", view=self)
@@ -376,7 +359,6 @@ async def mafia(interaction: discord.Interaction):
     )
     await interaction.response.send_message(embed=embed)
 
-# --- أمر Ping ---
 @bot.tree.command(name="ping", description="فحص سرعة استجابة البوت")
 async def ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)
