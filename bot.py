@@ -24,8 +24,8 @@ threading.Thread(target=run_flask, daemon=True).start()
 # --- ⚙️ إعدادات الأيديات والروابط ---
 # ==========================================
 
-# ⚠️ ضع هنا آي دي (ID) روم التقييمات ليظهر باللون الأزرق المباشر:
-VOUCHES_CHANNEL_ID = 1555679947467784212  # <--- يمكنك تغييره بـ ID روم VOUCHES
+# آي دي روم التقييمات الصحيح الذي تم تزويدي به:
+VOUCHES_CHANNEL_ID = 1555521230419922974
 
 CONFIG = {
     "middleman": {
@@ -47,8 +47,8 @@ CONFIG = {
 
 PURPLE_COLOR = discord.Color.from_rgb(138, 43, 226)
 
-# رابط صورة ASC المباشر المضمون
-BANNER_URL = "https://cdn.discordapp.com/attachments/1000000000000000000/1000000000000000000/asc_banner.png" 
+# رابط الصورة الملكية المباشرة والمضمونة لوحة التكتات
+BANNER_URL = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop"
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -67,7 +67,7 @@ async def sync(ctx):
         synced = await bot.tree.sync()
         await ctx.send(f"تمت مزامنة {len(synced)} أمر بنجاح! ✅")
 
-# --- نظام ردود الأرقام (1, 2, 3) ---
+# --- نظام ردود الأرقام (1, 2, 3) مع المنشن الأزرق الصحيح لروم التقييمات ---
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -75,8 +75,9 @@ async def on_message(message):
 
     content = message.content.strip()
     channel_name = message.channel.name
-    vouche_tag = f"<#{VOUCHES_CHANNEL_ID}>" if VOUCHES_CHANNEL_ID else "#VOUCHES⭐"
+    vouche_tag = f"<#{VOUCHES_CHANNEL_ID}>"
 
+    # 1. اختصار الوسيط
     if content == "1" and "وسيط-مضمون" in channel_name:
         user_roles = [r.id for r in message.author.roles]
         if CONFIG["middleman"]["role_id"] in user_roles or message.author.guild_permissions.administrator:
@@ -87,7 +88,7 @@ async def on_message(message):
 
             embed = discord.Embed(
                 description=(
-                    f"كان معكم الوسيط: {message.author.mention} 🤝\n\n"
+                    f"كان معكم الوسيط: 🤝 {message.author.mention}\n\n"
                     f"شكراً لتعاملكم معنا! نرجو منكم كتابة تقييمكم للخدمة في روم التقييمات:\n"
                     f"{vouche_tag}\n\n"
                     "نتمنى لكم يوماً سعيداً! ❤️"
@@ -96,6 +97,7 @@ async def on_message(message):
             )
             await message.channel.send(embed=embed)
 
+    # 2. اختصار الدعم الفني
     elif content == "2" and "دعم-فني" in channel_name:
         user_roles = [r.id for r in message.author.roles]
         if CONFIG["support"]["role_id"] in user_roles or message.author.guild_permissions.administrator:
@@ -105,11 +107,12 @@ async def on_message(message):
                 pass
 
             embed = discord.Embed(
-                description=f"كان معك {message.author.mention} من فريق الدعم الفني، لا تنسى التقيييم في روم {vouche_tag}\n❤️",
+                description=f"كان معك {message.author.mention} من فريق الدعم الفني، لا تنسى التقيييم في روم {vouche_tag} ❤️",
                 color=PURPLE_COLOR
             )
             await message.channel.send(embed=embed)
 
+    # 3. اختصار فريق التطوير
     elif content == "3" and "تطوير-مابات" in channel_name:
         user_roles = [r.id for r in message.author.roles]
         if CONFIG["dev"]["role_id"] in user_roles or message.author.guild_permissions.administrator:
@@ -161,9 +164,8 @@ class TicketControlView(discord.ui.View):
         )
         await interaction.response.send_message(embed=claim_embed)
 
-# --- دالة إنشاء التكت السريعة والسريعة للغاية ---
+# --- دالة إنشاء التكت ---
 async def create_ticket(interaction: discord.Interaction, ticket_type: str, answers: list, welcome_msg: str):
-    # التأكيد الفوري لمنع خطأ Something went wrong
     await interaction.response.defer(ephemeral=True)
     
     guild = interaction.guild
@@ -279,6 +281,7 @@ async def ticket_panel(interaction: discord.Interaction):
         description=desc_text,
         color=PURPLE_COLOR
     )
+    embed.set_image(url=BANNER_URL)
 
     view = TicketSelectView()
     await interaction.channel.send(embed=embed, view=view)
