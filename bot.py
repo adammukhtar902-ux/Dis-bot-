@@ -24,7 +24,6 @@ threading.Thread(target=run_flask, daemon=True).start()
 # --- ⚙️ إعدادات الأيديات والروابط ---
 # ==========================================
 
-# آي دي روم التقييمات الصحيح الذي تم تزويدي به:
 VOUCHES_CHANNEL_ID = 1555521230419922974
 
 CONFIG = {
@@ -47,8 +46,8 @@ CONFIG = {
 
 PURPLE_COLOR = discord.Color.from_rgb(138, 43, 226)
 
-# رابط الصورة الملكية المباشرة والمضمونة لوحة التكتات
-BANNER_URL = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop"
+# الصورة الافتراضية الخاصة بك (رابط ديسكورد المباشر)
+DEFAULT_BANNER = "https://cdn.discordapp.com/attachments/1558949550155108392/1561636477388197981/2A698CE0-F161-47F1-8B40-8376826F772D.jpg?ex=6ad712ce&is=6ad5c14e&hm=358a86d561e08eed92774efb5bb33a1c1dab2ac07543ed62af056c2205b8a533&"
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -67,7 +66,7 @@ async def sync(ctx):
         synced = await bot.tree.sync()
         await ctx.send(f"تمت مزامنة {len(synced)} أمر بنجاح! ✅")
 
-# --- نظام ردود الأرقام (1, 2, 3) مع المنشن الأزرق الصحيح لروم التقييمات ---
+# --- نظام ردود الأرقام (1, 2, 3) ---
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -265,9 +264,11 @@ class TicketSelectView(discord.ui.View):
         super().__init__(timeout=None)
         self.add_item(TicketSelect())
 
-@bot.tree.command(name="ticket", description="إرسال لوحة التكتات المتقدمة للسيرفر")
+# --- أمر إرسال التكت مع استخدام الصورة الخاصة بك تلقائياً ---
+@bot.tree.command(name="ticket", description="إرسال لوحة التكتات مع الصورة الملكية")
+@app_commands.describe(image_url="رابط صورة مخصص (اختياري)")
 @app_commands.checks.has_permissions(administrator=True)
-async def ticket_panel(interaction: discord.Interaction):
+async def ticket_panel(interaction: discord.Interaction, image_url: str = None):
     await interaction.response.defer(ephemeral=True)
 
     desc_text = (
@@ -281,7 +282,9 @@ async def ticket_panel(interaction: discord.Interaction):
         description=desc_text,
         color=PURPLE_COLOR
     )
-    embed.set_image(url=BANNER_URL)
+    
+    final_image = image_url if image_url else DEFAULT_BANNER
+    embed.set_image(url=final_image)
 
     view = TicketSelectView()
     await interaction.channel.send(embed=embed, view=view)
