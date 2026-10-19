@@ -57,7 +57,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f"✅ تم تسجيل الدخول بنجاح باسم: {bot.user}")
 
-# --- أمر خاص لمزامنة أوامر السلاش يدوياً بالشرطة النقطية (!sync) ---
+# --- أمر خاص لمزامنة أوامر السلاش يدوياً (!sync) ---
 @bot.command()
 async def sync(ctx):
     if ctx.author.guild_permissions.administrator:
@@ -74,7 +74,6 @@ async def on_message(message):
     channel_name = message.channel.name
     vouche_tag = f"<#{VOUCHES_CHANNEL_ID}>" if VOUCHES_CHANNEL_ID else "#VOUCHES⭐"
 
-    # 1. اختصار الوسيط
     if content == "1" and "وسيط-مضمون" in channel_name:
         user_roles = [r.id for r in message.author.roles]
         if CONFIG["middleman"]["role_id"] in user_roles or message.author.guild_permissions.administrator:
@@ -94,7 +93,6 @@ async def on_message(message):
             )
             await message.channel.send(embed=embed)
 
-    # 2. اختصار الدعم الفني
     elif content == "2" and "دعم-فني" in channel_name:
         user_roles = [r.id for r in message.author.roles]
         if CONFIG["support"]["role_id"] in user_roles or message.author.guild_permissions.administrator:
@@ -109,7 +107,6 @@ async def on_message(message):
             )
             await message.channel.send(embed=embed)
 
-    # 3. اختصار فريق التطوير
     elif content == "3" and "تطوير-مابات" in channel_name:
         user_roles = [r.id for r in message.author.roles]
         if CONFIG["dev"]["role_id"] in user_roles or message.author.guild_permissions.administrator:
@@ -368,5 +365,20 @@ async def ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)
     await interaction.response.send_message(f"Pong! 🏓 سرعة الاستجابة: {latency}ms")
 
+# --- تشغيل البوت مع آلية الانتظار التلقائي في حال حظر الـ IP ---
 token = os.getenv("TOKEN")
-bot.run(token)
+
+def start_bot():
+    while True:
+        try:
+            bot.run(token)
+            break
+        except discord.errors.HTTPException as e:
+            if e.status == 429:
+                print("⚠️ تم اكتشاف حظر Rate Limit مؤقت من ديسكورد، جاري الانتظار 60 ثانية للعادة...")
+                import time
+                time.sleep(60)
+            else:
+                raise e
+
+start_bot()
