@@ -81,7 +81,7 @@ class TicketControlView(View):
 
 
 # ---------------------------------------------------------
-# 4. نافذة الأسئلة والاستمارة (Modal) - مع صلاحية إرسال الصور
+# 4. نافذة الأسئلة والاستمارة (Modal)
 # ---------------------------------------------------------
 class TicketQuestionsModal(Modal, title="أسئلة التذكرة"):
 
@@ -124,14 +124,13 @@ class TicketQuestionsModal(Modal, title="أسئلة التذكرة"):
       )
       return
 
-    # إعطاء صلاحيات القراءة، الكتابة، إرسال الصور، وإرفاق الروابط للعضو
     overwrites = {
         guild.default_role: discord.PermissionOverwrite(read_messages=False),
         user: discord.PermissionOverwrite(
             read_messages=True,
             send_messages=True,
-            attach_files=True,  # إمكانية إرسال الصور والملفات
-            embed_links=True,  # إمكانية إرسال الروابط
+            attach_files=True,
+            embed_links=True,
         ),
         guild.me: discord.PermissionOverwrite(
             read_messages=True,
@@ -226,6 +225,39 @@ class MainTicketView(View):
 # ---------------------------------------------------------
 # 6. أوامر السلاش (Slash Commands)
 # ---------------------------------------------------------
+
+# أمر سلاش إنشاء البنل مع خيار إرفاق رابط الصورة
+@bot.tree.command(
+    name="ticket", description="إنشاء بنل التكتات مع إمكانية إرفاق صورة"
+)
+@discord.app_commands.describe(
+    image_url="ضع رابط الصورة المراد إضافتها في البنل (اختياري)"
+)
+async def slash_ticket_setup(
+    interaction: discord.Interaction, image_url: str = None
+):
+  if not interaction.user.guild_permissions.administrator:
+    await interaction.response.send_message(
+        "❌ هذا الأمر مخصص للإدارة فقط!", ephemeral=True
+    )
+    return
+
+  embed = discord.Embed(
+      title=PANEL_CONFIG["title"],
+      description=PANEL_CONFIG["description"],
+      color=PANEL_CONFIG["color"],
+  )
+
+  # إضافة الصورة للبنل إذا تم إدخال الرابط
+  if image_url:
+    embed.set_image(url=image_url)
+
+  await interaction.channel.send(embed=embed, view=MainTicketView())
+  await interaction.response.send_message(
+      "✅ تم إنشاء بنل التكتات بنجاح!", ephemeral=True
+  )
+
+
 @bot.tree.command(name="add", description="إضافة عضو إلى التكت الحالي")
 @discord.app_commands.describe(member="العضو المراد إضافته")
 async def slash_add(interaction: discord.Interaction, member: discord.Member):
@@ -332,19 +364,8 @@ async def slash_prison(interaction: discord.Interaction, member: discord.Member)
 
 
 # ---------------------------------------------------------
-# 7. أوامر إعداد البنل وإنشاء البوت
+# 7. تشغيل البوت
 # ---------------------------------------------------------
-@bot.command(name="انشاء_بنل")
-@commands.has_permissions(administrator=True)
-async def setup_tickets(ctx):
-  embed = discord.Embed(
-      title=PANEL_CONFIG["title"],
-      description=PANEL_CONFIG["description"],
-      color=PANEL_CONFIG["color"],
-  )
-  await ctx.send(embed=embed, view=MainTicketView())
-
-
 @bot.event
 async def on_ready():
   try:
