@@ -68,7 +68,6 @@ class TicketControlView(View):
   async def claim_ticket(
       self, interaction: discord.Interaction, button: discord.ui.Button
   ):
-    # التحقق من صلاحيات الإداري/المستلم
     if not interaction.user.guild_permissions.manage_channels:
       await interaction.response.send_message(
           "❌ عذراً، الإدارة فقط هي من تستطيع استلام التكت!", ephemeral=True
@@ -79,7 +78,6 @@ class TicketControlView(View):
     if message.embeds:
       embed = message.embeds[0]
 
-      # التحقق مما إذا كان التكت مستلماً بالفعل
       claimed_already = False
       for field in embed.fields:
         if field.name == "📌 حالة التذكرة":
@@ -92,7 +90,6 @@ class TicketControlView(View):
         )
         return
 
-      # إضافة حقل المستلم داخل الإمبد
       embed.add_field(
           name="📌 حالة التذكرة",
           value=f"تم استلام التذكرة بواسطة: {interaction.user.mention}",
@@ -100,13 +97,13 @@ class TicketControlView(View):
       )
 
       await message.edit(embed=embed)
+      # إرسال رسالة "تم استلام التذكرة بواسطة..." لكي يمكن للبوت حذفها لاحقاً إذا كتب العضو الأرقام
       await interaction.response.send_message(
-          f"✋ تم استلام التكت بنجاح بواسطة {interaction.user.mention}",
-          ephemeral=False,
+          f"تم استلام التذكره بواسطة {interaction.user.mention}", ephemeral=False
       )
     else:
       await interaction.response.send_message(
-          f"✋ تم استلام التكت بواسطة {interaction.user.mention}", ephemeral=False
+          f"تم استلام التذكره بواسطة {interaction.user.mention}", ephemeral=False
       )
 
   @discord.ui.button(
@@ -126,7 +123,67 @@ class TicketControlView(View):
 
 
 # ---------------------------------------------------------
-# 4. الاستمارات الخاصة بكل قسم (Modals)
+# 4. نظام الرد التلقائي عند كتابة الأرقام (1, 2, 3, 4) داخل التكتات
+# ---------------------------------------------------------
+@bot.event
+async def on_message(message):
+  # تجاهل رسائل البوتات
+  if message.author.bot:
+    return
+
+  # التأكد أن الرسالة داخل قناة تبدأ بكلمة "تكت"
+  if message.channel.name.startswith("تكت"):
+    content = message.content.strip()
+
+    # تحديد نوع الفريق بناءً على الرقم المدخل
+    team_data = None
+    if content == "1":
+      team_data = ("كان معكم الوسيط", "🤝", discord.Color.gold())
+    elif content == "2":
+      team_data = ("كان معكم من فريق الدعم الفني", "🎧", discord.Color.red())
+    elif content == "3":
+      team_data = ("كان معكم من فريق الرسامين", "🎨", discord.Color.purple())
+    elif content == "4":
+      team_data = ("كان معكم من فريق التطوير", "📊", discord.Color.blue())
+
+    if team_data:
+      title_text, emoji_icon, embed_color = team_data
+
+      # البحث عن رسالة "تم استلام التذكره بواسطة" في السجل لحذفها مع رسالة الأمر
+      async for msg in message.channel.history(limit=20):
+        if (
+            msg.author == bot.user
+            and "تم استلام التذكره بواسطة" in msg.content
+        ):
+          try:
+            await msg.delete()
+          except:
+            pass
+
+      # حذف رسالة الرقم التي كتبها الإداري
+      try:
+        await message.delete()
+      except:
+        pass
+
+      # إنشاء الإمبد المطلوب بدقة مطابقة للصور
+      embed = discord.Embed(
+          description=(
+              f"{emoji_icon} {title_text}: {message.author.mention}\n\n"
+              "شكراً لتعاملكم معنا! نرجو منكم كتابة تقييمكم للخدمة في روم"
+              " التقييمات:\n`# VOUCHES`\n\nنتمنى لكم يوماً سعيداً! ❤️"
+          ),
+          color=embed_color,
+      )
+
+      await message.channel.send(embed=embed)
+
+  # السماح بتشغيل الأوامر العادية وأوامر السلاش
+  await bot.process_commands(message)
+
+
+# ---------------------------------------------------------
+# 5. الاستمارات الخاصة بكل قسم (Modals)
 # ---------------------------------------------------------
 
 # أ) استمارة الوسيط
@@ -284,7 +341,7 @@ class SupportModal(Modal, title="الدعم الفني"):
 
 
 # ---------------------------------------------------------
-# 5. دالة موحدة لإنشاء التكت مع المنشن التلقائي بـ ID الرتبة
+# 6. دالة موحدة لإنشاء التكت مع المنشن التلقائي بـ ID الرتبة
 # ---------------------------------------------------------
 async def create_ticket_channel(
     interaction: discord.Interaction,
@@ -306,7 +363,6 @@ async def create_ticket_channel(
     )
     return
 
-  # جلب الرتبة المطلوبة باستخدام הـ ID
   role = guild.get_role(role_id)
 
   overwrites = {
@@ -346,7 +402,6 @@ async def create_ticket_channel(
   for name, value in fields_list:
     embed.add_field(name=name, value=value, inline=False)
 
-  # المنشن المباشر للرتبة
   mention_text = f"مرحباً {user.mention}"
   if role:
     mention_text += f" | {role.mention}"
@@ -360,7 +415,7 @@ async def create_ticket_channel(
 
 
 # ---------------------------------------------------------
-# 6. قائمة اختيار الخدمات الرئيسية
+# 7. قائمة اختيار الخدمات الرئيسية
 # ---------------------------------------------------------
 class TicketTypeSelect(Select):
 
@@ -413,7 +468,7 @@ class MainTicketView(View):
 
 
 # ---------------------------------------------------------
-# 7. أوامر السلاش (Slash Commands)
+# 8. أوامر السلاش (Slash Commands)
 # ---------------------------------------------------------
 @bot.tree.command(
     name="ticket", description="إنشاء بنل التكتات مع إمكانية إرفاق صورة"
@@ -551,7 +606,7 @@ async def slash_prison(interaction: discord.Interaction, member: discord.Member)
 
 
 # ---------------------------------------------------------
-# 8. تشغيل البوت
+# 9. تشغيل البوت
 # ---------------------------------------------------------
 @bot.event
 async def on_ready():
