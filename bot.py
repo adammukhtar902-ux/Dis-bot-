@@ -81,7 +81,7 @@ class TicketControlView(View):
 
 
 # ---------------------------------------------------------
-# 4. نافذة الأسئلة والاستمارة (Modal)
+# 4. نافذة الأسئلة والاستمارة (Modal) بترتيب صحيح ودقيق
 # ---------------------------------------------------------
 class TicketQuestionsModal(Modal, title="أسئلة التذكرة"):
 
@@ -89,22 +89,22 @@ class TicketQuestionsModal(Modal, title="أسئلة التذكرة"):
     super().__init__()
     self.service_type = service_type
 
+  ingame_name = TextInput(
+      label="اسمك باللعبة",
+      style=TextStyle.short,
+      placeholder="اكتب اسمك الحقيقي باللعبة...",
+      required=True,
+  )
   daman = TextInput(
-      label="وش ضمانك؟",
+      label="الضمان",
       style=TextStyle.paragraph,
-      placeholder="اكتب ضمانك هنا...",
+      placeholder="اكتب تفاصيل الضمان هنا...",
       required=True,
   )
   mokaabel = TextInput(
-      label="وش مقابلتك؟",
+      label="المقابل",
       style=TextStyle.paragraph,
-      placeholder="اكتب مقابلتك هنا...",
-      required=True,
-  )
-  ingame_name = TextInput(
-      label="اسمك باللعبة؟",
-      style=TextStyle.short,
-      placeholder="اكتب اسمك الحقيقي باللعبة...",
+      placeholder="اكتب المقابل هنا...",
       required=True,
   )
 
@@ -148,12 +148,12 @@ class TicketQuestionsModal(Modal, title="أسئلة التذكرة"):
         title="🎟️ تفاصيل طلب التذكرة", color=discord.Color.purple()
     )
     embed.set_author(name=user.display_name, icon_url=user.display_avatar.url)
-    embed.add_field(name="النوع", value=self.service_type, inline=True)
+    embed.add_field(name="نوع الطلب", value=self.service_type, inline=False)
+    embed.add_field(
+        name="اسم اللاعب", value=self.ingame_name.value, inline=False
+    )
     embed.add_field(name="الضمان", value=self.daman.value, inline=False)
     embed.add_field(name="المقابل", value=self.mokaabel.value, inline=False)
-    embed.add_field(
-        name="الاسم باللعبة", value=self.ingame_name.value, inline=False
-    )
 
     await ticket_channel.send(
         content=f"مرحباً {user.mention}، تم فتح التكت بنجاح!",
@@ -225,8 +225,6 @@ class MainTicketView(View):
 # ---------------------------------------------------------
 # 6. أوامر السلاش (Slash Commands)
 # ---------------------------------------------------------
-
-# أمر سلاش إنشاء البنل مع خيار إرفاق رابط الصورة
 @bot.tree.command(
     name="ticket", description="إنشاء بنل التكتات مع إمكانية إرفاق صورة"
 )
@@ -248,7 +246,6 @@ async def slash_ticket_setup(
       color=PANEL_CONFIG["color"],
   )
 
-  # إضافة الصورة للبنل إذا تم إدخال الرابط
   if image_url:
     embed.set_image(url=image_url)
 
