@@ -81,92 +81,219 @@ class TicketControlView(View):
 
 
 # ---------------------------------------------------------
-# 4. نافذة الأسئلة والاستمارة (Modal) بترتيب صحيح ودقيق
+# 4. الاستمارات الخاصة بكل قسم (Modals)
 # ---------------------------------------------------------
-class TicketQuestionsModal(Modal, title="أسئلة التذكرة"):
 
-  def __init__(self, service_type):
+# أ) استمارة الوسيط (Trade)
+class MiddlemanModal(Modal, title="تفاصيل صفقة الوساطة"):
+
+  def __init__(self):
     super().__init__()
-    self.service_type = service_type
 
+  get_item = TextInput(
+      label="وش بتاخذ؟",
+      style=TextStyle.paragraph,
+      placeholder="اكتب ما ستستلمه...",
+      required=True,
+  )
+  give_item = TextInput(
+      label="وش بتعطي؟",
+      style=TextStyle.paragraph,
+      placeholder="اكتب ما ستقدمه...",
+      required=True,
+  )
+  other_user = TextInput(
+      label="يوزر الطرف الثاني بالديسكورد",
+      style=TextStyle.short,
+      placeholder="اكتب يوزر الطرف الثاني...",
+      required=True,
+  )
+  tip = TextInput(
+      label="التيب او الهديه/غير إلزامي",
+      style=TextStyle.short,
+      placeholder="اكتب التيب إن وجد...",
+      required=False,
+  )
+
+  async def on_submit(self, interaction: discord.Interaction):
+    await create_ticket_channel(
+        interaction,
+        "وسيط مضمون",
+        discord.Color.gold(),
+        [
+            ("وش بتاخذ", self.get_item.value),
+            ("وش بتعطي", self.give_item.value),
+            ("يوزر الطرف الثاني", self.other_user.value),
+            ("التيب / الهدية", self.tip.value or "لا يوجد"),
+        ],
+    )
+
+
+# ب) استمارة تطوير المابات
+class DevelopmentModal(Modal, title="تفاصيل تطوير المابات"):
+
+  def __init__(self):
+    super().__init__()
+
+  dev_target = TextInput(
+      label="اكتب وش تبي اطور",
+      style=TextStyle.paragraph,
+      placeholder="اكتب اي شخصيه تبي تطور...",
+      required=True,
+  )
+  dev_price = TextInput(
+      label="بكم تبي تطور",
+      style=TextStyle.short,
+      placeholder="اكتب بكم تبي تطور...",
+      required=True,
+  )
+  mokaabel = TextInput(
+      label="اكتب المقابل هنا",
+      style=TextStyle.paragraph,
+      placeholder="...المقابل",
+      required=True,
+  )
+  account_name = TextInput(
+      label="اكتب اسم حسابك هنا",
+      style=TextStyle.short,
+      placeholder="اكتب اسم حسابك...",
+      required=True,
+  )
+
+  async def on_submit(self, interaction: discord.Interaction):
+    await create_ticket_channel(
+        interaction,
+        "تطوير المابات",
+        discord.Color.blue(),
+        [
+            ("المراد التطوير", self.dev_target.value),
+            ("سعر التطوير", self.dev_price.value),
+            ("المقابل", self.mokaabel.value),
+            ("اسم الحساب", self.account_name.value),
+        ],
+    )
+
+
+# جـ) استمارة تكت الهلاوين (اللون)
+class HalloweenModal(Modal, title="أسئلة تكت الهلاوين"):
+
+  def __init__(self):
+    super().__init__()
+
+  daman = TextInput(
+      label="وش ضمانك؟",
+      style=TextStyle.paragraph,
+      placeholder="اكتب ضمانك هنا...",
+      required=True,
+  )
+  mokaabel = TextInput(
+      label="وش مقابلك؟",
+      style=TextStyle.paragraph,
+      placeholder="اكتب مقابلتك هنا...",
+      required=True,
+  )
   ingame_name = TextInput(
       label="اسمك باللعبة",
       style=TextStyle.short,
       placeholder="اكتب اسمك الحقيقي باللعبة...",
       required=True,
   )
-  daman = TextInput(
-      label="الضمان",
+
+  async def on_submit(self, interaction: discord.Interaction):
+    await create_ticket_channel(
+        interaction,
+        "تكت الهلاوين",
+        discord.Color.orange(),
+        [
+            ("الضمان", self.daman.value),
+            ("المقابل", self.mokaabel.value),
+            ("اسم اللاعب", self.ingame_name.value),
+        ],
+    )
+
+
+# د) استمارة الدعم الفني
+class SupportModal(Modal, title="الدعم الفني"):
+
+  def __init__(self):
+    super().__init__()
+
+  issue = TextInput(
+      label="ما هي مشكلتك؟",
       style=TextStyle.paragraph,
-      placeholder="اكتب تفاصيل الضمان هنا...",
-      required=True,
-  )
-  mokaabel = TextInput(
-      label="المقابل",
-      style=TextStyle.paragraph,
-      placeholder="اكتب المقابل هنا...",
+      placeholder="اشرح مشكلتك بالتفصيل...",
       required=True,
   )
 
   async def on_submit(self, interaction: discord.Interaction):
-    guild = interaction.guild
-    user = interaction.user
-
-    # شرط عدم فتح أكثر من تكت بنفس الوقت
-    clean_user_name = user.name.lower().replace(" ", "-")
-    existing_channel = discord.utils.get(
-        guild.text_channels, name=f"تكت-{clean_user_name}"
-    )
-    if existing_channel:
-      await interaction.response.send_message(
-          f"❌ لديك تكت مفتوح بالفعل في {existing_channel.mention}!",
-          ephemeral=True,
-      )
-      return
-
-    overwrites = {
-        guild.default_role: discord.PermissionOverwrite(read_messages=False),
-        user: discord.PermissionOverwrite(
-            read_messages=True,
-            send_messages=True,
-            attach_files=True,
-            embed_links=True,
-        ),
-        guild.me: discord.PermissionOverwrite(
-            read_messages=True,
-            send_messages=True,
-            attach_files=True,
-            embed_links=True,
-        ),
-    }
-
-    ticket_channel = await guild.create_text_channel(
-        name=f"تكت-{clean_user_name}", overwrites=overwrites
-    )
-
-    embed = discord.Embed(
-        title="🎟️ تفاصيل طلب التذكرة", color=discord.Color.purple()
-    )
-    embed.set_author(name=user.display_name, icon_url=user.display_avatar.url)
-    embed.add_field(name="نوع الطلب", value=self.service_type, inline=False)
-    embed.add_field(
-        name="اسم اللاعب", value=self.ingame_name.value, inline=False
-    )
-    embed.add_field(name="الضمان", value=self.daman.value, inline=False)
-    embed.add_field(name="المقابل", value=self.mokaabel.value, inline=False)
-
-    await ticket_channel.send(
-        content=f"مرحباً {user.mention}، تم فتح التكت بنجاح!",
-        embed=embed,
-        view=TicketControlView(),
-    )
-    await interaction.response.send_message(
-        f"✅ تم فتح التكت بنجاح في {ticket_channel.mention}", ephemeral=True
+    await create_ticket_channel(
+        interaction,
+        "الدعم الفني",
+        discord.Color.red(),
+        [("وصف المشكلة", self.issue.value)],
     )
 
 
 # ---------------------------------------------------------
-# 5. قائمة اختيار الخدمات الرئيسية
+# 5. دالة موحدة لإنشاء وتجهيز روم التكت وإرسال التفاصيل
+# ---------------------------------------------------------
+async def create_ticket_channel(
+    interaction: discord.Interaction, service_type, embed_color, fields_list
+):
+  guild = interaction.guild
+  user = interaction.user
+
+  clean_user_name = user.name.lower().replace(" ", "-")
+  existing_channel = discord.utils.get(
+      guild.text_channels, name=f"تكت-{clean_user_name}"
+  )
+  if existing_channel:
+    await interaction.response.send_message(
+        f"❌ لديك تكت مفتوح بالفعل في {existing_channel.mention}!", ephemeral=True
+    )
+    return
+
+  overwrites = {
+      guild.default_role: discord.PermissionOverwrite(read_messages=False),
+      user: discord.PermissionOverwrite(
+          read_messages=True,
+          send_messages=True,
+          attach_files=True,
+          embed_links=True,
+      ),
+      guild.me: discord.PermissionOverwrite(
+          read_messages=True,
+          send_messages=True,
+          attach_files=True,
+          embed_links=True,
+      ),
+  }
+
+  ticket_channel = await guild.create_text_channel(
+      name=f"تكت-{clean_user_name}", overwrites=overwrites
+  )
+
+  embed = discord.Embed(
+      title=f"🎟️ تفاصيل تذكرة: {service_type}", color=embed_color
+  )
+  embed.set_author(name=user.display_name, icon_url=user.display_avatar.url)
+  embed.add_field(name="صاحب الطلب", value=user.mention, inline=False)
+
+  for name, value in fields_list:
+    embed.add_field(name=name, value=value, inline=False)
+
+  await ticket_channel.send(
+      content=f"مرحباً {user.mention}، تم فتح التكت بنجاح!",
+      embed=embed,
+      view=TicketControlView(),
+  )
+  await interaction.response.send_message(
+      f"✅ تم فتح التكت بنجاح في {ticket_channel.mention}", ephemeral=True
+  )
+
+
+# ---------------------------------------------------------
+# 6. قائمة اختيار الخدمات الرئيسية
 # ---------------------------------------------------------
 class TicketTypeSelect(Select):
 
@@ -174,25 +301,25 @@ class TicketTypeSelect(Select):
     options = [
         discord.SelectOption(
             label="وسيط مضمون",
-            value="وسيط مضمون",
-            description="لضمان عملية التداول بوجود وسيط",
+            value="وسيط",
+            description="لفتح تكت وساطة وتداول بين طرفين",
             emoji="⚖️",
         ),
         discord.SelectOption(
             label="تطوير المابات",
-            value="تطوير المابات",
+            value="تطوير",
             description="لطلب خدمة تطوير مابات",
             emoji="📊",
         ),
         discord.SelectOption(
             label="تكت الهلاوين",
-            value="تكت الهلاوين",
+            value="هلاوين",
             description="لطلب خدمات وفعاليات الهلاوين",
             emoji="🎃",
         ),
         discord.SelectOption(
             label="التواصل مع الدعم الفني",
-            value="الدعم الفني",
+            value="دعم",
             description="لأي مشكلة أو استفسار",
             emoji="🎧",
         ),
@@ -200,19 +327,15 @@ class TicketTypeSelect(Select):
     super().__init__(placeholder="اختر نوع التذكرة...", options=options)
 
   async def callback(self, interaction: discord.Interaction):
-    clean_user_name = interaction.user.name.lower().replace(" ", "-")
-    existing_channel = discord.utils.get(
-        interaction.guild.text_channels, name=f"تكت-{clean_user_name}"
-    )
-    if existing_channel:
-      await interaction.response.send_message(
-          f"❌ لديك تكت مفتوح بالفعل في {existing_channel.mention}!",
-          ephemeral=True,
-      )
-      return
-
-    modal = TicketQuestionsModal(self.values[0])
-    await interaction.response.send_modal(modal)
+    val = self.values[0]
+    if val == "وسيط":
+      await interaction.response.send_modal(MiddlemanModal())
+    elif val == "تطوير":
+      await interaction.response.send_modal(DevelopmentModal())
+    elif val == "هلاوين":
+      await interaction.response.send_modal(HalloweenModal())
+    elif val == "دعم":
+      await interaction.response.send_modal(SupportModal())
 
 
 class MainTicketView(View):
@@ -223,7 +346,7 @@ class MainTicketView(View):
 
 
 # ---------------------------------------------------------
-# 6. أوامر السلاش (Slash Commands)
+# 7. أوامر السلاش (Slash Commands)
 # ---------------------------------------------------------
 @bot.tree.command(
     name="ticket", description="إنشاء بنل التكتات مع إمكانية إرفاق صورة"
@@ -361,7 +484,7 @@ async def slash_prison(interaction: discord.Interaction, member: discord.Member)
 
 
 # ---------------------------------------------------------
-# 7. تشغيل البوت
+# 8. تشغيل البوت
 # ---------------------------------------------------------
 @bot.event
 async def on_ready():
