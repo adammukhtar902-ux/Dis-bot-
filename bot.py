@@ -34,10 +34,9 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-# البوت يستجيب للعلامات المباشرة والأوامر النصية العادية
+# البوت يستجيب للعلامات المباشرة والأوامر النصية بدون سلاش
 bot = commands.Bot(command_prefix=["!", "bot ", ""], intents=intents)
 
-# متغيّرات قابلة للتعديل ديناميكياً بدون مساس الكود
 PANEL_CONFIG = {
     "title": "نحن هنا لخدمتك",
     "description": "يرجى اختيار نوع طلبك من القائمة أدناه، ثم أجب على الأسئلة المطلوبة وسيتم إنشاء التذكرة تلقائياً.",
@@ -79,6 +78,18 @@ class TicketQuestionsModal(Modal, title="أسئلة التذكرة"):
     guild = interaction.guild
     user = interaction.user
 
+    # شرط الحد الأدنى: التحقق مما إذا كان للمستخدم تكت مفتوح بالفعل
+    clean_user_name = user.name.lower().replace(" ", "-")
+    existing_channel = discord.utils.get(
+        guild.text_channels, name=f"تكت-{clean_user_name}"
+    )
+    if existing_channel:
+      await interaction.response.send_message(
+          f"❌ لديك تكت مفتوح بالفعل في {existing_channel.mention}! لا يمكنك فتح تكت جديد حتى يتم إغلاق الأول.",
+          ephemeral=True,
+      )
+      return
+
     overwrites = {
         guild.default_role: discord.PermissionOverwrite(read_messages=False),
         user: discord.PermissionOverwrite(
@@ -90,7 +101,7 @@ class TicketQuestionsModal(Modal, title="أسئلة التذكرة"):
     }
 
     ticket_channel = await guild.create_text_channel(
-        name=f"تكت-{user.name}", overwrites=overwrites
+        name=f"تكت-{clean_user_name}", overwrites=overwrites
     )
 
     embed = discord.Embed(
@@ -209,6 +220,18 @@ class TicketTypeSelect(Select):
     super().__init__(placeholder="اختر نوع التذكرة...", options=options)
 
   async def callback(self, interaction: discord.Interaction):
+    # تحقق مسبق قبل فتح الاستبيان لمنع التكرار
+    clean_user_name = interaction.user.name.lower().replace(" ", "-")
+    existing_channel = discord.utils.get(
+        interaction.guild.text_channels, name=f"تكت-{clean_user_name}"
+    )
+    if existing_channel:
+      await interaction.response.send_message(
+          f"❌ لديك تكت مفتوح بالفعل في {existing_channel.mention}! لا يمكنك فتح تكت جديد حتى يتم إغلاق الأول.",
+          ephemeral=True,
+      )
+      return
+
     if self.values[0] == "الالوان بيوت":
       view = MapView(self.values[0])
       await interaction.response.send_message(
@@ -231,7 +254,7 @@ class MainTicketView(View):
 # ---------------------------------------------------------
 @bot.command(name="ضيف", aliases=["add"])
 async def add_member(ctx, member: discord.Member):
-  """إضافة عضو للتكت بكلمة: ضيف @user"""
+  """إضافة عضو للتكت: ضيف @user"""
   await ctx.channel.set_permissions(
       member, read_messages=True, send_messages=True
   )
@@ -252,12 +275,19 @@ async def rename_ticket(ctx, *, new_name: str):
   await ctx.send(f"✏️ تم تغيير اسم التكت إلى: `{new_name}`")
 
 
-@bot.command(name="حذف_التكت", aliases=["delete", "close", "قفل"])
+@bot.command(name="حذف_التكت", aliases=["delete", "close", "قفل_تكت"])
+@commands.has_permissions(manage_channels=True)
 async def delete_ticket(ctx):
-  """حذف التكت فوراً"""
+  """حذف التكت (للإدارة فقط لتجنب الإزعاج)"""
   await ctx.send("🛑 سيتم حذف التكت خلال 3 ثوانٍ...")
   await asyncio.sleep(3)
   await ctx.channel.delete()
+
+
+@delete_ticket.error
+async def delete_ticket_error(ctx, error):
+  if isinstance(error, commands.MissingPermissions):
+    await ctx.send("❌ عذراً، الإدارة فقط هي من تستطيع إغلاق أو حذف التكت!")
 
 
 # ---------------------------------------------------------
