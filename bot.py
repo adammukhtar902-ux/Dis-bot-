@@ -53,8 +53,8 @@ ROLE_IDS = {
     "هلاوين": 1562309878695985272,
 }
 
-# ⚠️ [هام]: ضع هنا ID روم التقييمات ليظهر باللون الأزرق القابل للضغط (Channel ID)
-VOUCHES_CHANNEL_ID = 123456789012345678  # استبدل هذا الرقم بـ ID روم التقييمات عندك
+# آيدي روم التقييمات الصحيح الذي أرسلته
+VOUCHES_CHANNEL_ID = 1555521230419922974
 
 
 # ---------------------------------------------------------
@@ -77,13 +77,12 @@ class TicketControlView(View):
       )
       return
 
-    # إنشاء إمبد الاستلام المخصص تماماً مثل الصورة
+    # إنشاء إمبد الاستلام المخصص داخل إمبد أخضر مثل الصورة
     claim_embed = discord.Embed(
         description=f"تم استلام التذكره بواسطة {interaction.user.mention}",
         color=discord.Color.green(),
     )
 
-    # تحديث الإمبد الرئيسي ليوضح أن التذكرة استلمت
     message = interaction.message
     if message.embeds:
       main_embed = message.embeds[0]
@@ -106,7 +105,6 @@ class TicketControlView(View):
       )
       await message.edit(embed=main_embed)
 
-    # إرسال إمبد الاستلام في الشات
     await interaction.response.send_message(embed=claim_embed, ephemeral=False)
 
   @discord.ui.button(
@@ -149,7 +147,7 @@ async def on_message(message):
     if team_data:
       title_text, emoji_icon, embed_color = team_data
 
-      # البحث عن رسالة إمبد "تم استلام التذكره بواسطة" لحذفها
+      # حذف رسالة إمبد الاستلام السابقة
       async for msg in message.channel.history(limit=20):
         if msg.author == bot.user and msg.embeds:
           for emb in msg.embeds:
@@ -162,16 +160,16 @@ async def on_message(message):
               except:
                 pass
 
-      # حذف رسالة الأمر التي كتبها الإداري
+      # حذف رسالة الرقم التي كتبها الإداري
       try:
         await message.delete()
       except:
         pass
 
-      # منشن روم التقييمات بالأزرق
+      # منشن روم التقييمات بالأزرق باستخدام الآيدي الصحيح
       vouch_mention = f"<#{VOUCHES_CHANNEL_ID}>"
 
-      # إنشاء الإمبد النهائي المطابق للصورة 100%
+      # بناء الإمبد النهائي
       embed = discord.Embed(
           description=(
               f"{emoji_icon} {title_text}: {message.author.mention}\n\n"
@@ -206,7 +204,7 @@ class MiddlemanModal(Modal, title="تفاصيل صفقة الوساطة"):
   give_item = TextInput(
       label="وش بتعطي؟",
       style=TextStyle.paragraph,
-      placeholder="اكتب ما ستقديم...",
+      placeholder="اكتب ما ستقدمه...",
       required=True,
   )
   other_user = TextInput(
