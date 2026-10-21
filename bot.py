@@ -28,7 +28,7 @@ def keep_alive():
 
 
 # ---------------------------------------------------------
-# 2. إعدادات البوت والـ IDs للرتب
+# 2. إعدادات البوت والـ IDs للرتب والرومات
 # ---------------------------------------------------------
 intents = discord.Intents.default()
 intents.message_content = True
@@ -53,6 +53,9 @@ ROLE_IDS = {
     "هلاوين": 1562309878695985272,
 }
 
+# ⚠️ [هام]: ضع هنا ID روم التقييمات ليظهر باللون الأزرق القابل للضغط (Channel ID)
+VOUCHES_CHANNEL_ID = 123456789012345678  # استبدل هذا الرقم بـ ID روم التقييمات عندك
+
 
 # ---------------------------------------------------------
 # 3. أزرار التحكم داخل التكت (استلام وتحديث الإمبد + قفل)
@@ -74,12 +77,18 @@ class TicketControlView(View):
       )
       return
 
+    # إنشاء إمبد الاستلام المخصص تماماً مثل الصورة
+    claim_embed = discord.Embed(
+        description=f"تم استلام التذكره بواسطة {interaction.user.mention}",
+        color=discord.Color.green(),
+    )
+
+    # تحديث الإمبد الرئيسي ليوضح أن التذكرة استلمت
     message = interaction.message
     if message.embeds:
-      embed = message.embeds[0]
-
+      main_embed = message.embeds[0]
       claimed_already = False
-      for field in embed.fields:
+      for field in main_embed.fields:
         if field.name == "📌 حالة التذكرة":
           claimed_already = True
           break
@@ -90,21 +99,15 @@ class TicketControlView(View):
         )
         return
 
-      embed.add_field(
+      main_embed.add_field(
           name="📌 حالة التذكرة",
           value=f"تم استلام التذكرة بواسطة: {interaction.user.mention}",
           inline=False,
       )
+      await message.edit(embed=main_embed)
 
-      await message.edit(embed=embed)
-      # إرسال رسالة "تم استلام التذكرة بواسطة..." لكي يمكن للبوت حذفها لاحقاً إذا كتب العضو الأرقام
-      await interaction.response.send_message(
-          f"تم استلام التذكره بواسطة {interaction.user.mention}", ephemeral=False
-      )
-    else:
-      await interaction.response.send_message(
-          f"تم استلام التذكره بواسطة {interaction.user.mention}", ephemeral=False
-      )
+    # إرسال إمبد الاستلام في الشات
+    await interaction.response.send_message(embed=claim_embed, ephemeral=False)
 
   @discord.ui.button(
       label="قفل التكت", style=discord.ButtonStyle.red, custom_id="close_ticket"
@@ -127,15 +130,12 @@ class TicketControlView(View):
 # ---------------------------------------------------------
 @bot.event
 async def on_message(message):
-  # تجاهل رسائل البوتات
   if message.author.bot:
     return
 
-  # التأكد أن الرسالة داخل قناة تبدأ بكلمة "تكت"
   if message.channel.name.startswith("تكت"):
     content = message.content.strip()
 
-    # تحديد نوع الفريق بناءً على الرقم المدخل
     team_data = None
     if content == "1":
       team_data = ("كان معكم الوسيط", "🤝", discord.Color.gold())
@@ -149,36 +149,41 @@ async def on_message(message):
     if team_data:
       title_text, emoji_icon, embed_color = team_data
 
-      # البحث عن رسالة "تم استلام التذكره بواسطة" في السجل لحذفها مع رسالة الأمر
+      # البحث عن رسالة إمبد "تم استلام التذكره بواسطة" لحذفها
       async for msg in message.channel.history(limit=20):
-        if (
-            msg.author == bot.user
-            and "تم استلام التذكره بواسطة" in msg.content
-        ):
-          try:
-            await msg.delete()
-          except:
-            pass
+        if msg.author == bot.user and msg.embeds:
+          for emb in msg.embeds:
+            if (
+                emb.description
+                and "تم استلام التذكره بواسطة" in emb.description
+            ):
+              try:
+                await msg.delete()
+              except:
+                pass
 
-      # حذف رسالة الرقم التي كتبها الإداري
+      # حذف رسالة الأمر التي كتبها الإداري
       try:
         await message.delete()
       except:
         pass
 
-      # إنشاء الإمبد المطلوب بدقة مطابقة للصور
+      # منشن روم التقييمات بالأزرق
+      vouch_mention = f"<#{VOUCHES_CHANNEL_ID}>"
+
+      # إنشاء الإمبد النهائي المطابق للصورة 100%
       embed = discord.Embed(
           description=(
               f"{emoji_icon} {title_text}: {message.author.mention}\n\n"
               "شكراً لتعاملكم معنا! نرجو منكم كتابة تقييمكم للخدمة في روم"
-              " التقييمات:\n`# VOUCHES`\n\nنتمنى لكم يوماً سعيداً! ❤️"
+              f" التقييمات:\n{vouch_mention}\n\n"
+              "نتمنى لكم يوماً سعيداً! ❤️"
           ),
           color=embed_color,
       )
 
       await message.channel.send(embed=embed)
 
-  # السماح بتشغيل الأوامر العادية وأوامر السلاش
   await bot.process_commands(message)
 
 
@@ -201,7 +206,7 @@ class MiddlemanModal(Modal, title="تفاصيل صفقة الوساطة"):
   give_item = TextInput(
       label="وش بتعطي؟",
       style=TextStyle.paragraph,
-      placeholder="اكتب ما ستقدمه...",
+      placeholder="اكتب ما ستقديم...",
       required=True,
   )
   other_user = TextInput(
