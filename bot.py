@@ -28,7 +28,7 @@ def keep_alive():
 
 
 # ---------------------------------------------------------
-# 2. إعدادات البوت ودعم أوامر السلاش
+# 2. إعدادات البوت والـ IDs للرتب
 # ---------------------------------------------------------
 intents = discord.Intents.default()
 intents.message_content = True
@@ -45,9 +45,17 @@ PANEL_CONFIG = {
     "color": 0x6A0DAD,
 }
 
+# IDs الرتب الخاصة بكل قسم
+ROLE_IDS = {
+    "وسيط": 1555673464470376479,
+    "تطوير": 1561565278045736970,
+    "دعم": 1555335120582344784,
+    "هلاوين": 1562309878695985272,
+}
+
 
 # ---------------------------------------------------------
-# 3. أزرار التحكم داخل التكت (قفل، استلام)
+# 3. أزرار التحكم داخل التكت (استلام وتحديث الإمبد + قفل)
 # ---------------------------------------------------------
 class TicketControlView(View):
 
@@ -60,9 +68,46 @@ class TicketControlView(View):
   async def claim_ticket(
       self, interaction: discord.Interaction, button: discord.ui.Button
   ):
-    await interaction.response.send_message(
-        f"✋ تم استلام التكت بواسطة {interaction.user.mention}", ephemeral=False
-    )
+    # التحقق من صلاحيات الإداري/المستلم
+    if not interaction.user.guild_permissions.manage_channels:
+      await interaction.response.send_message(
+          "❌ عذراً، الإدارة فقط هي من تستطيع استلام التكت!", ephemeral=True
+      )
+      return
+
+    message = interaction.message
+    if message.embeds:
+      embed = message.embeds[0]
+
+      # التحقق مما إذا كان التكت مستلماً بالفعل
+      claimed_already = False
+      for field in embed.fields:
+        if field.name == "📌 حالة التذكرة":
+          claimed_already = True
+          break
+
+      if claimed_already:
+        await interaction.response.send_message(
+            "⚠️ هذه التذكرة مستلمة بالفعل!", ephemeral=True
+        )
+        return
+
+      # إضافة حقل المستلم داخل الإمبد
+      embed.add_field(
+          name="📌 حالة التذكرة",
+          value=f"تم استلام التذكرة بواسطة: {interaction.user.mention}",
+          inline=False,
+      )
+
+      await message.edit(embed=embed)
+      await interaction.response.send_message(
+          f"✋ تم استلام التكت بنجاح بواسطة {interaction.user.mention}",
+          ephemeral=False,
+      )
+    else:
+      await interaction.response.send_message(
+          f"✋ تم استلام التكت بواسطة {interaction.user.mention}", ephemeral=False
+      )
 
   @discord.ui.button(
       label="قفل التكت", style=discord.ButtonStyle.red, custom_id="close_ticket"
@@ -84,7 +129,7 @@ class TicketControlView(View):
 # 4. الاستمارات الخاصة بكل قسم (Modals)
 # ---------------------------------------------------------
 
-# أ) استمارة الوسيط (Trade)
+# أ) استمارة الوسيط
 class MiddlemanModal(Modal, title="تفاصيل صفقة الوساطة"):
 
   def __init__(self):
@@ -119,6 +164,7 @@ class MiddlemanModal(Modal, title="تفاصيل صفقة الوساطة"):
     await create_ticket_channel(
         interaction,
         "وسيط مضمون",
+        ROLE_IDS["وسيط"],
         discord.Color.gold(),
         [
             ("وش بتاخذ", self.get_item.value),
@@ -164,6 +210,7 @@ class DevelopmentModal(Modal, title="تفاصيل تطوير المابات"):
     await create_ticket_channel(
         interaction,
         "تطوير المابات",
+        ROLE_IDS["تطوير"],
         discord.Color.blue(),
         [
             ("المراد التطوير", self.dev_target.value),
@@ -174,7 +221,7 @@ class DevelopmentModal(Modal, title="تفاصيل تطوير المابات"):
     )
 
 
-# جـ) استمارة تكت الهلاوين (اللون)
+# جـ) استمارة تكت الهلاوين
 class HalloweenModal(Modal, title="أسئلة تكت الهلاوين"):
 
   def __init__(self):
@@ -203,6 +250,7 @@ class HalloweenModal(Modal, title="أسئلة تكت الهلاوين"):
     await create_ticket_channel(
         interaction,
         "تكت الهلاوين",
+        ROLE_IDS["هلاوين"],
         discord.Color.orange(),
         [
             ("الضمان", self.daman.value),
@@ -229,16 +277,21 @@ class SupportModal(Modal, title="الدعم الفني"):
     await create_ticket_channel(
         interaction,
         "الدعم الفني",
+        ROLE_IDS["دعم"],
         discord.Color.red(),
         [("وصف المشكلة", self.issue.value)],
     )
 
 
 # ---------------------------------------------------------
-# 5. دالة موحدة لإنشاء وتجهيز روم التكت وإرسال التفاصيل
+# 5. دالة موحدة لإنشاء التكت مع المنشن التلقائي بـ ID الرتبة
 # ---------------------------------------------------------
 async def create_ticket_channel(
-    interaction: discord.Interaction, service_type, embed_color, fields_list
+    interaction: discord.Interaction,
+    service_type,
+    role_id,
+    embed_color,
+    fields_list,
 ):
   guild = interaction.guild
   user = interaction.user
@@ -252,6 +305,9 @@ async def create_ticket_channel(
         f"❌ لديك تكت مفتوح بالفعل في {existing_channel.mention}!", ephemeral=True
     )
     return
+
+  # جلب الرتبة المطلوبة باستخدام הـ ID
+  role = guild.get_role(role_id)
 
   overwrites = {
       guild.default_role: discord.PermissionOverwrite(read_messages=False),
@@ -269,6 +325,14 @@ async def create_ticket_channel(
       ),
   }
 
+  if role:
+    overwrites[role] = discord.PermissionOverwrite(
+        read_messages=True,
+        send_messages=True,
+        attach_files=True,
+        embed_links=True,
+    )
+
   ticket_channel = await guild.create_text_channel(
       name=f"تكت-{clean_user_name}", overwrites=overwrites
   )
@@ -282,10 +346,13 @@ async def create_ticket_channel(
   for name, value in fields_list:
     embed.add_field(name=name, value=value, inline=False)
 
+  # المنشن المباشر للرتبة
+  mention_text = f"مرحباً {user.mention}"
+  if role:
+    mention_text += f" | {role.mention}"
+
   await ticket_channel.send(
-      content=f"مرحباً {user.mention}، تم فتح التكت بنجاح!",
-      embed=embed,
-      view=TicketControlView(),
+      content=mention_text, embed=embed, view=TicketControlView()
   )
   await interaction.response.send_message(
       f"✅ تم فتح التكت بنجاح في {ticket_channel.mention}", ephemeral=True
