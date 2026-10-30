@@ -627,7 +627,7 @@ async def slash_warn(
     reason: str = "غير محدد",
 ):
   if not interaction.user.guild_permissions.manage_messages:
-    await interaction.response.send_message(v
+    await interaction.response.send_message(
         "❌ لا تمتلك الصلاحية لاستخدام هذا الأمر.", ephemeral=True
     )
     return
