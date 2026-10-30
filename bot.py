@@ -45,12 +45,12 @@ ticket_counters = {
 }
 
 PANEL_CONFIG = {
-    "title": "🦇 نظام تكتات سيرفر Ascended - هالوين 🎃",
+    "title": "نحن هنا لخدمتك",
     "description": (
         "يرجى اختيار نوع طلبك من القائمة أدناه، ثم أجب على الأسئلة المطلوبة"
         " وسيتم إنشاء التذكرة تلقائياً."
     ),
-    "color": 0xD35400, # لون هالويني برتقالي فخم
+    "color": 0x6A0DAD, # اللون البنفسجي الرسمي
 }
 
 # IDs الرتب الخاصة بكل قسم
@@ -66,7 +66,7 @@ VOUCHES_CHANNEL_ID = 1555521230419922974
 
 
 # ---------------------------------------------------------
-# 3. أزرار التحكم داخل التكت (استلام وتحديث الإمبد + قفل)
+# 3. أزرار التحكم داخل التكت (مع إضافة الإيموجيات المطلوبة)
 # ---------------------------------------------------------
 class TicketControlView(View):
 
@@ -74,7 +74,7 @@ class TicketControlView(View):
     super().__init__(timeout=None)
 
   @discord.ui.button(
-      label="استلام التكت", style=discord.ButtonStyle.green, custom_id="claim_ticket"
+      label="استلام التكت", style=discord.ButtonStyle.green, emoji="🛡️", custom_id="claim_ticket"
   )
   async def claim_ticket(
       self, interaction: discord.Interaction, button: discord.ui.Button
@@ -115,7 +115,7 @@ class TicketControlView(View):
     await interaction.response.send_message(embed=claim_embed, ephemeral=False)
 
   @discord.ui.button(
-      label="قفل التكت", style=discord.ButtonStyle.red, custom_id="close_ticket"
+      label="قفل التكت", style=discord.ButtonStyle.red, emoji="🔒", custom_id="close_ticket"
   )
   async def close_ticket(
       self, interaction: discord.Interaction, button: discord.ui.Button
@@ -193,7 +193,7 @@ async def on_message(message):
 # ---------------------------------------------------------
 
 # أ) استمارة الوسيط (مع إضافة الطرف الثاني تلقائياً)
-class MiddlemanModal(Modal, title="🦇 تفاصيل صفقة الوساطة - Ascended"):
+class MiddlemanModal(Modal, title="تفاصيل صفقة الوساطة"):
 
   def __init__(self):
     super().__init__()
@@ -229,9 +229,8 @@ class MiddlemanModal(Modal, title="🦇 تفاصيل صفقة الوساطة - A
     num = ticket_counters["وسيط"]
     ticket_counters["وسيط"] += 1
 
-    channel_name = f"🎃-وسيط-{num:03d}"
+    channel_name = f"تكت-وسيط-{num:03d}"
     
-    # محاولة البحث عن الطرف الثاني وإضافته تلقائياً لو موجود بالسيرفر
     second_member = None
     target_username = self.other_user.value.strip().replace("@", "")
     for m in guild.members:
@@ -258,7 +257,7 @@ class MiddlemanModal(Modal, title="🦇 تفاصيل صفقة الوساطة - A
 
 
 # ب) استمارة تطوير المابات
-class DevelopmentModal(Modal, title="🔮 تفاصيل تطوير المابات - Ascended"):
+class DevelopmentModal(Modal, title="تفاصيل تطوير المابات"):
 
   def __init__(self):
     super().__init__()
@@ -294,7 +293,7 @@ class DevelopmentModal(Modal, title="🔮 تفاصيل تطوير المابات
     num = ticket_counters["تطوير"]
     ticket_counters["تطوير"] += 1
 
-    channel_name = f"🔮-تطوير-{num:03d}"
+    channel_name = f"تكت-تطوير-{num:03d}"
 
     await create_ticket_channel(
         interaction,
@@ -312,7 +311,7 @@ class DevelopmentModal(Modal, title="🔮 تفاصيل تطوير المابات
 
 
 # جـ) استمارة تكت الهلاوين
-class HalloweenModal(Modal, title="🎃 أسئلة تكت الهلاوين - Ascended"):
+class HalloweenModal(Modal, title="أسئلة تكت الهلاوين"):
 
   def __init__(self):
     super().__init__()
@@ -342,7 +341,7 @@ class HalloweenModal(Modal, title="🎃 أسئلة تكت الهلاوين - Asc
     num = ticket_counters["هلاوين"]
     ticket_counters["هلاوين"] += 1
 
-    channel_name = f"🎃-هلاوين-{num:03d}"
+    channel_name = f"تكت-هلاوين-{num:03d}"
 
     await create_ticket_channel(
         interaction,
@@ -359,7 +358,7 @@ class HalloweenModal(Modal, title="🎃 أسئلة تكت الهلاوين - Asc
 
 
 # د) استمارة الدعم الفني
-class SupportModal(Modal, title="🎧 الدعم الفني - Ascended"):
+class SupportModal(Modal, title="الدعم الفني"):
 
   def __init__(self):
     super().__init__()
@@ -377,7 +376,7 @@ class SupportModal(Modal, title="🎧 الدعم الفني - Ascended"):
     num = ticket_counters["دعم"]
     ticket_counters["دعم"] += 1
 
-    channel_name = f"👻-دعم-{num:03d}"
+    channel_name = f"تكت-دعم-{num:03d}"
 
     await create_ticket_channel(
         interaction,
@@ -443,15 +442,13 @@ async def create_ticket_channel(
   )
 
   embed = discord.Embed(
-      title=f"🎟️ تفاصيل تذكرة: {service_type}", color=embed_color
+      title=f"تفاصيل تذكرة: {service_type}", color=embed_color
   )
   embed.set_author(name=user.display_name, icon_url=user.display_avatar.url)
   embed.add_field(name="صاحب الطلب", value=user.mention, inline=False)
 
   for name, value in fields_list:
     embed.add_field(name=name, value=value, inline=False)
-
-  embed.set_footer(text="Ascended Halloween System 🦇")
 
   mention_text = f"مرحباً {user.mention}"
   if second_member:
@@ -654,7 +651,7 @@ async def slash_prison(interaction: discord.Interaction, member: discord.Member)
     )
     for channel in interaction.guild.channels:
       await channel.set_permissions(prison_role, send_messages=False)
-  await member.add_roles(prison_role)
+  .await member.add_roles(prison_role)
   await interaction.response.send_message(f"🔒 تم سجن {member.mention} بنجاح!")
 
 
