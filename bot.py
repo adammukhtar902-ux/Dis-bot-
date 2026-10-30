@@ -627,7 +627,7 @@ async def slash_warn(
     reason: str = "غير محدد",
 ):
   if not interaction.user.guild_permissions.manage_messages:
-    await interaction.response.send_message(
+    await interaction.response.send_message(v
         "❌ لا تمتلك الصلاحية لاستخدام هذا الأمر.", ephemeral=True
     )
     return
@@ -651,7 +651,7 @@ async def slash_prison(interaction: discord.Interaction, member: discord.Member)
     )
     for channel in interaction.guild.channels:
       await channel.set_permissions(prison_role, send_messages=False)
-  .await member.add_roles(prison_role)
+  await member.add_roles(prison_role)
   await interaction.response.send_message(f"🔒 تم سجن {member.mention} بنجاح!")
 
 
