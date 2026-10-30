@@ -15,7 +15,7 @@ app = Flask("")
 
 @app.route("/")
 def home():
-  return "Bot is active 24/7!"
+  return "Advanced Ticket Bot is active 24/7!"
 
 
 def run_flask():
@@ -28,7 +28,7 @@ def keep_alive():
 
 
 # ---------------------------------------------------------
-# 2. إعدادات البوت والـ IDs للرتب والرومات
+# 2. إعدادات البوت والـ IDs للرتب والرومات والعدادات التصاعدية
 # ---------------------------------------------------------
 intents = discord.Intents.default()
 intents.message_content = True
@@ -36,13 +36,21 @@ intents.members = True
 
 bot = commands.Bot(command_prefix=["!"], intents=intents)
 
+# عدادات التكتات التصاعدية لكل قسم
+ticket_counters = {
+    "وسيط": 1,
+    "تطوير": 1,
+    "هلاوين": 1,
+    "دعم": 1
+}
+
 PANEL_CONFIG = {
-    "title": "نحن هنا لخدمتك",
+    "title": "🦇 نظام تكتات سيرفر Ascended - هالوين 🎃",
     "description": (
         "يرجى اختيار نوع طلبك من القائمة أدناه، ثم أجب على الأسئلة المطلوبة"
         " وسيتم إنشاء التذكرة تلقائياً."
     ),
-    "color": 0x6A0DAD,
+    "color": 0xD35400, # لون هالويني برتقالي فخم
 }
 
 # IDs الرتب الخاصة بكل قسم
@@ -53,7 +61,7 @@ ROLE_IDS = {
     "هلاوين": 1562309878695985272,
 }
 
-# آيدي روم التقييمات الصحيح الذي أرسلته
+# آيدي روم التقييمات الصحيح
 VOUCHES_CHANNEL_ID = 1555521230419922974
 
 
@@ -77,7 +85,6 @@ class TicketControlView(View):
       )
       return
 
-    # إنشاء إمبد الاستلام المخصص داخل إمبد أخضر مثل الصورة
     claim_embed = discord.Embed(
         description=f"تم استلام التذكره بواسطة {interaction.user.mention}",
         color=discord.Color.green(),
@@ -131,7 +138,7 @@ async def on_message(message):
   if message.author.bot:
     return
 
-  if message.channel.name.startswith("تكت"):
+  if "تكت" in message.channel.name or "وسيط" in message.channel.name or "دعم" in message.channel.name or "تطوير" in message.channel.name or "هلاوين" in message.channel.name:
     content = message.content.strip()
 
     team_data = None
@@ -147,7 +154,6 @@ async def on_message(message):
     if team_data:
       title_text, emoji_icon, embed_color = team_data
 
-      # حذف رسالة إمبد الاستلام السابقة
       async for msg in message.channel.history(limit=20):
         if msg.author == bot.user and msg.embeds:
           for emb in msg.embeds:
@@ -160,16 +166,13 @@ async def on_message(message):
               except:
                 pass
 
-      # حذف رسالة الرقم التي كتبها الإداري
       try:
         await message.delete()
       except:
         pass
 
-      # منشن روم التقييمات بالأزرق باستخدام الآيدي الصحيح
       vouch_mention = f"<#{VOUCHES_CHANNEL_ID}>"
 
-      # بناء الإمبد النهائي
       embed = discord.Embed(
           description=(
               f"{emoji_icon} {title_text}: {message.author.mention}\n\n"
@@ -186,11 +189,11 @@ async def on_message(message):
 
 
 # ---------------------------------------------------------
-# 5. الاستمارات الخاصة بكل قسم (Modals)
+# 5. الاستمارات الخاصة بكل قسم مع العدادات التصاعدية وسحب يوزر الطرف الثاني
 # ---------------------------------------------------------
 
-# أ) استمارة الوسيط
-class MiddlemanModal(Modal, title="تفاصيل صفقة الوساطة"):
+# أ) استمارة الوسيط (مع إضافة الطرف الثاني تلقائياً)
+class MiddlemanModal(Modal, title="🦇 تفاصيل صفقة الوساطة - Ascended"):
 
   def __init__(self):
     super().__init__()
@@ -221,22 +224,41 @@ class MiddlemanModal(Modal, title="تفاصيل صفقة الوساطة"):
   )
 
   async def on_submit(self, interaction: discord.Interaction):
+    global ticket_counters
+    guild = interaction.guild
+    num = ticket_counters["وسيط"]
+    ticket_counters["وسيط"] += 1
+
+    channel_name = f"🎃-وسيط-{num:03d}"
+    
+    # محاولة البحث عن الطرف الثاني وإضافته تلقائياً لو موجود بالسيرفر
+    second_member = None
+    target_username = self.other_user.value.strip().replace("@", "")
+    for m in guild.members:
+      if m.name.lower() == target_username.lower() or str(m.id) == target_username:
+        second_member = m
+        break
+
+    fields = [
+        ("وش بتاخذ", self.get_item.value),
+        ("وش بتعطي", self.give_item.value),
+        ("يوزر الطرف الثاني", self.other_user.value + (f" ({second_member.mention})" if second_member else " (لم يتم العثور عليه تلقائياً كعضو)")),
+        ("التيب / الهدية", self.tip.value or "لا يوجد"),
+    ]
+
     await create_ticket_channel(
         interaction,
+        channel_name,
         "وسيط مضمون",
         ROLE_IDS["وسيط"],
         discord.Color.gold(),
-        [
-            ("وش بتاخذ", self.get_item.value),
-            ("وش بتعطي", self.give_item.value),
-            ("يوزر الطرف الثاني", self.other_user.value),
-            ("التيب / الهدية", self.tip.value or "لا يوجد"),
-        ],
+        fields,
+        second_member=second_member
     )
 
 
 # ب) استمارة تطوير المابات
-class DevelopmentModal(Modal, title="تفاصيل تطوير المابات"):
+class DevelopmentModal(Modal, title="🔮 تفاصيل تطوير المابات - Ascended"):
 
   def __init__(self):
     super().__init__()
@@ -267,8 +289,16 @@ class DevelopmentModal(Modal, title="تفاصيل تطوير المابات"):
   )
 
   async def on_submit(self, interaction: discord.Interaction):
+    global ticket_counters
+    guild = interaction.guild
+    num = ticket_counters["تطوير"]
+    ticket_counters["تطوير"] += 1
+
+    channel_name = f"🔮-تطوير-{num:03d}"
+
     await create_ticket_channel(
         interaction,
+        channel_name,
         "تطوير المابات",
         ROLE_IDS["تطوير"],
         discord.Color.blue(),
@@ -282,7 +312,7 @@ class DevelopmentModal(Modal, title="تفاصيل تطوير المابات"):
 
 
 # جـ) استمارة تكت الهلاوين
-class HalloweenModal(Modal, title="أسئلة تكت الهلاوين"):
+class HalloweenModal(Modal, title="🎃 أسئلة تكت الهلاوين - Ascended"):
 
   def __init__(self):
     super().__init__()
@@ -302,13 +332,21 @@ class HalloweenModal(Modal, title="أسئلة تكت الهلاوين"):
   ingame_name = TextInput(
       label="اسمك باللعبة",
       style=TextStyle.short,
-      placeholder="اكتب اسمك الحقيقي باللعبة...",
+      placeholder="اكتب اسمك باللعبة...",
       required=True,
   )
 
   async def on_submit(self, interaction: discord.Interaction):
+    global ticket_counters
+    guild = interaction.guild
+    num = ticket_counters["هلاوين"]
+    ticket_counters["هلاوين"] += 1
+
+    channel_name = f"🎃-هلاوين-{num:03d}"
+
     await create_ticket_channel(
         interaction,
+        channel_name,
         "تكت الهلاوين",
         ROLE_IDS["هلاوين"],
         discord.Color.orange(),
@@ -321,7 +359,7 @@ class HalloweenModal(Modal, title="أسئلة تكت الهلاوين"):
 
 
 # د) استمارة الدعم الفني
-class SupportModal(Modal, title="الدعم الفني"):
+class SupportModal(Modal, title="🎧 الدعم الفني - Ascended"):
 
   def __init__(self):
     super().__init__()
@@ -334,8 +372,16 @@ class SupportModal(Modal, title="الدعم الفني"):
   )
 
   async def on_submit(self, interaction: discord.Interaction):
+    global ticket_counters
+    guild = interaction.guild
+    num = ticket_counters["دعم"]
+    ticket_counters["دعم"] += 1
+
+    channel_name = f"👻-دعم-{num:03d}"
+
     await create_ticket_channel(
         interaction,
+        channel_name,
         "الدعم الفني",
         ROLE_IDS["دعم"],
         discord.Color.red(),
@@ -344,27 +390,19 @@ class SupportModal(Modal, title="الدعم الفني"):
 
 
 # ---------------------------------------------------------
-# 6. دالة موحدة لإنشاء التكت مع المنشن التلقائي بـ ID الرتبة
+# 6. دالة موحدة لإنشاء التكت مع العدادات والمنشن التلقائي
 # ---------------------------------------------------------
 async def create_ticket_channel(
     interaction: discord.Interaction,
+    channel_name,
     service_type,
     role_id,
     embed_color,
     fields_list,
+    second_member=None,
 ):
   guild = interaction.guild
   user = interaction.user
-
-  clean_user_name = user.name.lower().replace(" ", "-")
-  existing_channel = discord.utils.get(
-      guild.text_channels, name=f"تكت-{clean_user_name}"
-  )
-  if existing_channel:
-    await interaction.response.send_message(
-        f"❌ لديك تكت مفتوح بالفعل في {existing_channel.mention}!", ephemeral=True
-    )
-    return
 
   role = guild.get_role(role_id)
 
@@ -392,8 +430,16 @@ async def create_ticket_channel(
         embed_links=True,
     )
 
+  if second_member:
+    overwrites[second_member] = discord.PermissionOverwrite(
+        read_messages=True,
+        send_messages=True,
+        attach_files=True,
+        embed_links=True,
+    )
+
   ticket_channel = await guild.create_text_channel(
-      name=f"تكت-{clean_user_name}", overwrites=overwrites
+      name=channel_name, overwrites=overwrites
   )
 
   embed = discord.Embed(
@@ -405,7 +451,11 @@ async def create_ticket_channel(
   for name, value in fields_list:
     embed.add_field(name=name, value=value, inline=False)
 
+  embed.set_footer(text="Ascended Halloween System 🦇")
+
   mention_text = f"مرحباً {user.mention}"
+  if second_member:
+    mention_text += f" {second_member.mention}"
   if role:
     mention_text += f" | {role.mention}"
 
@@ -413,7 +463,7 @@ async def create_ticket_channel(
       content=mention_text, embed=embed, view=TicketControlView()
   )
   await interaction.response.send_message(
-      f"✅ تم فتح التكت بنجاح في {ticket_channel.mention}", ephemeral=True
+      f"✅ تم فتح التذكتك بنجاح في {ticket_channel.mention}", ephemeral=True
   )
 
 
