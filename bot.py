@@ -654,38 +654,39 @@ async def slash_prison(interaction: discord.Interaction, member: discord.Member)
   await member.add_roles(prison_role)
   await interaction.response.send_message(f"🔒 تم سجن {member.mention} بنجاح!")
 
-# ---------------------------------------------------------
-# نظام الرد التلقائي بصورة الأدلة للرومات المحددة
-# ---------------------------------------------------------
+# ==========================================
+# نظام الرد التلقائي والأدلة
+# ==========================================
+
+TARGET_CHANNEL_IDS = [
+    1558873662533411008,
+    1555524677353476166,
+    1555521230419922974
+]
+
 @bot.event
 async def on_message(message):
-    # تجاهل رسائل البوت نفسه عشان ما يصير تداخل
+    # تجامل رسائل البوت نفسه عشان ما يصير تداخل
     if message.author.bot:
-        try:
-            await bot.process_commands(message)
-        except:
-            pass
+        await bot.process_commands(message)
         return
 
-        # آيديات رومات الأدلة الثلاثة اللي حددناها
-    TARGET_CHANNEL_IDS = [
-        1558873662533411008,
-        1555524677353476166,
-        1555521230419922974
-    ]
-
-        # إذا الرسالة أُرسلت في واحد من رومات الأدلة، يرسل الصورة كـ Embed فخم
+    # إذا أُرسلت الرسالة في رومات الأدلة، يرسل الصورة كـ Embed فخم
     if message.channel.id in TARGET_CHANNEL_IDS:
-        part1 = "https://cdn.discordapp.com/attachments/1555524677353476166/1565940194689949738/"
-        part2 = "18EDB27C-3E8E-4959-B20B-CAA52582585A.jpg?ex=6ae6baf4&is=6ae56974&hm=3fef5463429d83d2525fe5db1ef9ebfe50a24a184b8c3f8cb5ba8747dabbd4b4&"
-        final_image_url = part1 + part2
-        embed = discord.Embed(color=0x6A0DAD)
-        embed.set_image(url=final_image_url)
-        await message.channel.send(embed=embed)
+        try:
+            part1 = "https://cdn.discordapp.com/attachments/1555524677353476166/1565940194689949738/"
+            part2 = "18EDB27C-3E8E-4959-B20B-CAA52582585A.jpg?ex=6ae6baf4&is=6ae56974&hm=3fef5463429d83d2525fe5db1ef9ebfe50a24a184b8c3f8cb5ba8747dabbd4b4&"
+            final_image_url = part1 + part2
+            
+            embed = discord.Embed(color=0x6A0DAD)
+            embed.set_image(url=final_image_url)
+            await message.channel.send(embed=embed)
+        except Exception as e:
+            print(f"خطأ أثناء إرسال الصورة: {e}")
 
-
-    # هذا السطر ضروري جداً عشان تضل أزرار وأوامر التذاكر شغالّة 100%
+        # ضروري جداً لتشغيل الأوامر والتذاكر والأزرار
     await bot.process_commands(message)
+
 
 # ---------------------------------------------------------
 # 9. تشغيل البوت
