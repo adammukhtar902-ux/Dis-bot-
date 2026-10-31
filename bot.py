@@ -667,15 +667,15 @@ async def on_message(message):
             pass
         return
 
-    # آيديات رومات الأدلة الثلاثة اللي حددناها
+        # آيديات رومات الأدلة الثلاثة اللي حددناها
     TARGET_CHANNEL_IDS = [
         1558873662533411008,
         1555524677353476166,
         1555521230419922974
     ]
 
-    # إذا الرسالة أُرسلت في واحد من رومات الأدلة، يرسل الصورة الفخمة كـ Embed
-        if message.channel.id in TARGET_CHANNEL_IDS:
+    # إذا الرسالة أُرسلت في واحد من رومات الأدلة، يرسل الصورة كـ Embed
+    if message.channel.id in TARGET_CHANNEL_IDS:
         final_image_url = "https://cdn.discordapp.com/attachments/1555524677353476166/1565932039532847204/CF719954-2310-42A1-A039-0405805145CF.jpg?ex=6ae6b35b&is=6ae561db&hm=c74d3b0372f363eb3834cd9d33f66e82d0d5dd752bb9ac5c4fb7025d6264218b&"
         embed = discord.Embed(color=0x6A0DAD)
         embed.set_image(url=final_image_url)
@@ -683,7 +683,6 @@ async def on_message(message):
 
     # هذا السطر ضروري جداً عشان تضل أزرار وأوامر التذاكر شغالّة 100%
     await bot.process_commands(message)
-
 
 # ---------------------------------------------------------
 # 9. تشغيل البوت
