@@ -677,7 +677,9 @@ async def on_message(message):
     # إذا الرسالة أُرسلت في واحد من رومات الأدلة، يرسل الصورة الفخمة تلقائياً
     if message.channel.id in TARGET_CHANNEL_IDS:
         final_image_url = "https://cdn.discordapp.com/attachments/1555516148521369631/1565924637295247440/8DDBE2B1-7EC5-4772-A7D1-6C8D5C66AFBB.jpg?ex=6ae6ac77&is=6ae55af7&hm=b95a62de8d11e25ebd941a058e9ab59fc23239b7b459858e24fbf8c8a7195717&"
-        await message.channel.send(final_image_url)
+embed = discord.Embed(color=0x6A0DAD)
+embed.set_image(url=final_image_url)
+await message.channel.send(embed=embed)
 
     # هذا السطر ضروري جداً عشان تضل أزرار وأوامر التذاكر شغالّة 100%
     await bot.process_commands(message)
