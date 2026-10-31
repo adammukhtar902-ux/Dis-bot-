@@ -655,7 +655,6 @@ async def slash_prison(interaction: discord.Interaction, member: discord.Member)
   await interaction.response.send_message(f"🔒 تم سجن {member.mention} بنجاح!")
 
 
-
 # ---------------------------------------------------------
 # 9. تشغيل البوت
 # ---------------------------------------------------------
