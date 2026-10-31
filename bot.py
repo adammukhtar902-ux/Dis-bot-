@@ -675,11 +675,12 @@ async def on_message(message):
     ]
 
     # إذا الرسالة أُرسلت في واحد من رومات الأدلة، يرسل الصورة الفخمة كـ Embed
-    if message.channel.id in TARGET_CHANNEL_IDS:
-      final_image_url = "https://cdn.discordapp.com/attachments/1555524677353476166/1565932039532847204/CF719954-2310-42A1-A039-0405805145CF.jpg?ex=6ae6b35b&is=6ae561db&hm=c74d3b0372f363eb3834cd9d33f66e82d0d5dd752bb9ac5c4fb7025d6264218b&"
+        if message.channel.id in TARGET_CHANNEL_IDS:
+        final_image_url = "https://cdn.discordapp.com/attachments/1555524677353476166/1565932039532847204/CF719954-2310-42A1-A039-0405805145CF.jpg?ex=6ae6b35b&is=6ae561db&hm=c74d3b0372f363eb3834cd9d33f66e82d0d5dd752bb9ac5c4fb7025d6264218b&"
         embed = discord.Embed(color=0x6A0DAD)
         embed.set_image(url=final_image_url)
         await message.channel.send(embed=embed)
+
     # هذا السطر ضروري جداً عشان تضل أزرار وأوامر التذاكر شغالّة 100%
     await bot.process_commands(message)
 
