@@ -654,6 +654,33 @@ async def slash_prison(interaction: discord.Interaction, member: discord.Member)
   await member.add_roles(prison_role)
   await interaction.response.send_message(f"🔒 تم سجن {member.mention} بنجاح!")
 
+# ---------------------------------------------------------
+# نظام الرد التلقائي بصورة الأدلة للرومات المحددة
+# ---------------------------------------------------------
+@bot.event
+async def on_message(message):
+    # تجاهل رسائل البوت نفسه عشان ما يصير تداخل
+    if message.author.bot:
+        try:
+            await bot.process_commands(message)
+        except:
+            pass
+        return
+
+    # آيديات رومات الأدلة الثلاثة اللي حددناها
+    TARGET_CHANNEL_IDS = [
+        1558873662533411008,
+        1555524677353476166,
+        1555521230419922974
+    ]
+
+    # إذا الرسالة أُرسلت في واحد من رومات الأدلة، يرسل الصورة الفخمة تلقائياً
+    if message.channel.id in TARGET_CHANNEL_IDS:
+        final_image_url = "https://cdn.discordapp.com/attachments/1555516148521369631/1565924637295247440/8DDBE2B1-7EC5-4772-A7D1-6C8D5C66AFBB.jpg?ex=6ae6ac77&is=6ae55af7&hm=b95a62de8d11e25ebd941a058e9ab59fc23239b7b459858e24fbf8c8a7195717&"
+        await message.channel.send(final_image_url)
+
+    # هذا السطر ضروري جداً عشان تضل أزرار وأوامر التذاكر شغالّة 100%
+    await bot.process_commands(message)
 
 # ---------------------------------------------------------
 # 9. تشغيل البوت
